@@ -1,0 +1,30 @@
+<?php
+
+$NAMESPACE$
+
+use PHPOpenSourceSaver\Fractal\TransformerAbstract;
+use $MODEL$;
+
+/**
+ * Class $CLASS$Transformer
+ *
+ * @package Tempest\Api\V1\Transformers
+ */
+class $CLASS$Transformer extends TransformerAbstract
+{
+
+    protected array $availableIncludes = [];
+
+    /**
+     * Transform user data
+     *
+     * @param $CLASS$ $$CLASS_SMALL$
+     * @return array
+     */
+    public function transform($CLASS$ $$CLASS_SMALL$)
+    {
+        return [
+            'id'    => (int)$$CLASS_SMALL$->{$CLASS$::ID},
+        ];
+    }
+}

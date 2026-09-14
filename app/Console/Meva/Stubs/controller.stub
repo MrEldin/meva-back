@@ -1,0 +1,55 @@
+<?php
+
+$NAMESPACE$
+
+use Illuminate\Http\Response;
+use $TRANSFORMER$;
+use $REPOSITORY$;
+use $CREATE_REQUEST$;
+use $UPDATE_REQUEST$;
+use $GET_REQUEST$;
+use $DELETE_REQUEST$;
+use $CREATE_SERVICE_NAMESPACE$;
+use $UPDATE_SERVICE_NAMESPACE$;
+use $GET_SERVICE_NAMESPACE$;
+use $INDEX_SERVICE_NAMESPACE$;
+use $DELETE_SERVICE_NAMESPACE$;
+
+class $CLASS$Controller extends Controller
+{
+
+    public function show(Get$CLASS$Request $request, $id, Get$CLASS$Service $service)
+    {
+        return $this->response
+            ->item($service->handle($id), new $CLASS$Transformer())
+            ->setStatusCode(Response::HTTP_OK);
+    }
+
+    public function index(Get$CLASS$Request $request, Index$CLASS$Service $service)
+    {
+        return $this->response
+            ->collection($service->handle(), new $CLASS$Transformer())
+            ->setStatusCode(Response::HTTP_OK);
+    }
+
+
+    public function create(Create$CLASS$Request $request, Create$CLASS$Service $service)
+    {
+        return $this->response
+            ->item($service->handle($request->all()), new $CLASS$Transformer())
+            ->setStatusCode(Response::HTTP_OK);
+    }
+
+    public function update(Update$CLASS$Request $request, $id, Update$CLASS$Service $service)
+    {
+        return $this->response
+            ->item($service->handle($id, $request->all()), new $CLASS$Transformer())
+            ->setStatusCode(Response::HTTP_OK);
+    }
+
+    public function destroy(Delete$CLASS$Request $request, $id, Delete$CLASS$Service $service)
+    {
+        return $service->handle($id);
+    }
+
+}
