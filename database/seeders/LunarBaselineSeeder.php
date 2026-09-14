@@ -3,12 +3,17 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Artisan;
 use Lunar\Models\Channel;
 use Lunar\Models\CollectionGroup;
 use Lunar\Models\CustomerGroup;
 use Lunar\Models\Currency;
 use Lunar\Models\Language;
+use Lunar\Models\Country;
 use Lunar\Models\TaxClass;
+use Lunar\Models\TaxRate;
+use Lunar\Models\TaxRateAmount;
+use Lunar\Models\TaxZone;
 
 /**
  * The baseline records Lunar needs before anything can be priced or published.
@@ -27,6 +32,12 @@ class LunarBaselineSeeder extends Seeder
      */
     public function run(): void
     {
+        // Addresses need countries, and an order cannot be created without one.
+        // Lunar ships the reference data behind its own command.
+        if (Country::count() === 0) {
+            Artisan::call('lunar:import:address-data');
+        }
+
         if (! Channel::whereDefault(true)->exists()) {
             Channel::create([
                 'name' => 'Meva Kozmetika',
@@ -85,10 +96,40 @@ class LunarBaselineSeeder extends Seeder
             ]);
         }
 
-        if (! TaxClass::count()) {
-            TaxClass::create([
-                'name' => 'Default Tax Class',
+        $taxClass = TaxClass::firstOrCreate(
+            ['name' => 'Default Tax Class'],
+            ['default' => true]
+        );
+
+        // Lunar's tax driver dereferences the default zone while calculating a
+        // cart, so a shop without one cannot place an order at all. The old
+        // shop charged no VAT on any of its 5,480 orders, so the rate is zero
+        // until an accountant says otherwise.
+        if (! TaxZone::count()) {
+            $zone = TaxZone::create([
+                'name' => 'Srbija',
+                'zone_type' => 'country',
+                'price_display' => 'tax_inclusive',
                 'default' => true,
+                'active' => true,
+            ]);
+
+            $serbia = Country::where('iso2', 'RS')->first();
+
+            if ($serbia !== null) {
+                $zone->countries()->create(['country_id' => $serbia->id]);
+            }
+
+            $rate = TaxRate::create([
+                'tax_zone_id' => $zone->id,
+                'name' => 'PDV',
+                'priority' => 1,
+            ]);
+
+            TaxRateAmount::create([
+                'tax_rate_id' => $rate->id,
+                'tax_class_id' => $taxClass->id,
+                'percentage' => 0,
             ]);
         }
     }

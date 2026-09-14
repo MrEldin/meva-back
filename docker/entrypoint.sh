@@ -69,6 +69,14 @@ if ! grep -qE '^JWT_SECRET=.+' .env; then
     php artisan jwt:secret --force --ansi
 fi
 
+# --- public storage ----------------------------------------------------------
+# Product photography is served from the public disk; without the symlink every
+# image 404s.
+if [ ! -e public/storage ]; then
+    log 'Linking public storage'
+    php artisan storage:link --quiet
+fi
+
 # --- writable paths ----------------------------------------------------------
 mkdir -p storage/framework/{cache/data,sessions,testing,views} storage/logs bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache
