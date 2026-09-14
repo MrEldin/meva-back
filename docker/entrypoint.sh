@@ -79,8 +79,10 @@ fi
 
 # --- writable paths ----------------------------------------------------------
 mkdir -p storage/framework/{cache/data,sessions,testing,views} storage/logs bootstrap/cache
-chown -R www-data:www-data storage bootstrap/cache
-chmod -R ug+rw storage bootstrap/cache
+# Only the paths the framework writes to; chowning all of storage/ would also
+# try to touch anything mounted underneath it.
+chown -R www-data:www-data storage/framework storage/logs bootstrap/cache
+chmod -R ug+rw storage/framework storage/logs bootstrap/cache
 
 # --- database ----------------------------------------------------------------
 wait_for_postgres

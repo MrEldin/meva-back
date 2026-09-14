@@ -28,3 +28,13 @@ $api->version('v1', function ($api) {
         $api->delete('{id}', ProductController::class.'@destroy')->name('destroy');
     });
 });
+
+$api->version('v1', function ($api) {
+    $api->group([
+        'middleware' => ['api', 'auth'],
+        'prefix' => 'admin',
+        'as' => 'admin',
+    ], function ($api) {
+        $api->get('analytics', \Meva\Api\V1\Controllers\Admin\AnalyticsController::class.'@index')->name('analytics');
+    });
+});

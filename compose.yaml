@@ -12,6 +12,10 @@ services:
     restart: unless-stopped
     volumes:
       - .:/var/www/html
+      # The sales export carries personal data and is never committed. Point
+      # MEVA_ARCHIVE_HOST_PATH at wherever it lives; it is mounted read-only so
+      # nothing personal ever enters the repository.
+      - ${MEVA_ARCHIVE_HOST_PATH:-./storage/app/meva-export}:/var/www/meva-export:ro
     environment:
       DB_CONNECTION: pgsql
       DB_HOST: postgres
@@ -22,6 +26,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       QUEUE_CONNECTION: redis
+      MEVA_ARCHIVE_PATH: /var/www/meva-export
     depends_on:
       postgres:
         condition: service_healthy
@@ -90,6 +95,10 @@ services:
     command: php artisan schedule:work
     volumes:
       - .:/var/www/html
+      # The sales export carries personal data and is never committed. Point
+      # MEVA_ARCHIVE_HOST_PATH at wherever it lives; it is mounted read-only so
+      # nothing personal ever enters the repository.
+      - ${MEVA_ARCHIVE_HOST_PATH:-./storage/app/meva-export}:/var/www/meva-export:ro
     environment:
       CONTAINER_ROLE: scheduler
       DB_CONNECTION: pgsql
@@ -101,6 +110,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       QUEUE_CONNECTION: redis
+      MEVA_ARCHIVE_PATH: /var/www/meva-export
     depends_on:
       app:
         condition: service_healthy
@@ -118,6 +128,10 @@ services:
     command: php artisan queue:work --tries=3 --max-time=3600 --backoff=10
     volumes:
       - .:/var/www/html
+      # The sales export carries personal data and is never committed. Point
+      # MEVA_ARCHIVE_HOST_PATH at wherever it lives; it is mounted read-only so
+      # nothing personal ever enters the repository.
+      - ${MEVA_ARCHIVE_HOST_PATH:-./storage/app/meva-export}:/var/www/meva-export:ro
     environment:
       CONTAINER_ROLE: worker
       DB_CONNECTION: pgsql
@@ -129,6 +143,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       QUEUE_CONNECTION: redis
+      MEVA_ARCHIVE_PATH: /var/www/meva-export
     depends_on:
       app:
         condition: service_healthy
