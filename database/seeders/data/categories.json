@@ -1,0 +1,249 @@
+{
+ "kategorije": [
+  {
+   "wp_term_id": 140,
+   "naziv": "Ekcem",
+   "slug": "ekcem",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 3,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 134,
+   "naziv": "Kosa",
+   "slug": "kosa",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 13,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 138,
+   "naziv": "Nega kože",
+   "slug": "preparati-za-lice",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 32,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 142,
+   "naziv": "Psorijaza",
+   "slug": "psorijaza",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 6,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 141,
+   "naziv": "Seboreja",
+   "slug": "seboreja",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 7,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 144,
+   "naziv": "Set za rozaceu",
+   "slug": "set-za-rozaceu",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 1,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 139,
+   "naziv": "Setovi",
+   "slug": "setovi",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 12,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 15,
+   "naziv": "Uncategorized",
+   "slug": "uncategorized",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 16,
+   "redosled": 0
+  }
+ ],
+ "tagovi": [
+  {
+   "wp_term_id": 24,
+   "naziv": "2021",
+   "slug": "2021",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 25,
+   "naziv": "beauty",
+   "slug": "beauty",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 26,
+   "naziv": "best",
+   "slug": "best",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 27,
+   "naziv": "boy",
+   "slug": "boy",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 28,
+   "naziv": "fashion",
+   "slug": "fashion",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 29,
+   "naziv": "guide",
+   "slug": "guide",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 30,
+   "naziv": "hair",
+   "slug": "hair",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 31,
+   "naziv": "hot",
+   "slug": "hot",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 32,
+   "naziv": "man",
+   "slug": "man",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 33,
+   "naziv": "market",
+   "slug": "market",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 34,
+   "naziv": "new",
+   "slug": "new",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 35,
+   "naziv": "relaxing",
+   "slug": "relaxing",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 36,
+   "naziv": "spring",
+   "slug": "spring",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 37,
+   "naziv": "style",
+   "slug": "style",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 38,
+   "naziv": "summer",
+   "slug": "summer",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 39,
+   "naziv": "top",
+   "slug": "top",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 40,
+   "naziv": "trend",
+   "slug": "trend",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 41,
+   "naziv": "trending",
+   "slug": "trending",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  },
+  {
+   "wp_term_id": 42,
+   "naziv": "woman",
+   "slug": "woman",
+   "nadkategorija": null,
+   "opis": "",
+   "broj_proizvoda": 0,
+   "redosled": 0
+  }
+ ]
+}

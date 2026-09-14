@@ -29,7 +29,7 @@ class LunarBaselineSeeder extends Seeder
     {
         if (! Channel::whereDefault(true)->exists()) {
             Channel::create([
-                'name' => 'Webstore',
+                'name' => 'Meva Kozmetika',
                 'handle' => 'webstore',
                 'default' => true,
                 'url' => config('app.url'),
@@ -44,13 +44,28 @@ class LunarBaselineSeeder extends Seeder
             ]);
         }
 
+        // The shop sells in Serbia and priced everything in RSD; EUR was a
+        // secondary currency on about half the catalogue.
         if (! Currency::whereDefault(true)->exists()) {
             Currency::create([
-                'code' => 'EUR',
-                'name' => 'Euro',
+                'code' => 'RSD',
+                'name' => 'Serbian Dinar',
                 'exchange_rate' => 1,
                 'decimal_places' => 2,
                 'default' => true,
+                'enabled' => true,
+            ]);
+        }
+
+        if (! Currency::where('code', 'EUR')->exists()) {
+            Currency::create([
+                'code' => 'EUR',
+                'name' => 'Euro',
+                // Roughly the rate the old shop priced against; set properly
+                // once someone owns the pricing.
+                'exchange_rate' => 0.00853,
+                'decimal_places' => 2,
+                'default' => false,
                 'enabled' => true,
             ]);
         }

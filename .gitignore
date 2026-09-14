@@ -20,3 +20,9 @@ yarn-error.log
 /.fleet
 /.nova
 /.zed
+
+# The catalogue export's orders and customers carry personal data for ~4,000
+# people and must never be committed. See database/seeders/data/README.md.
+/database/seeders/data/orders.*
+/database/seeders/data/order_items.*
+/database/seeders/data/customers.*
