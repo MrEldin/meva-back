@@ -19,7 +19,7 @@ return new class extends Migration
         Schema::create($tableNames['permissions'], function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('label');
+            $table->string('label')->nullable();
             $table->string('guard_name');
             $table->timestamps();
 
@@ -29,7 +29,7 @@ return new class extends Migration
         Schema::create($tableNames['roles'], function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('label');
+            $table->string('label')->nullable();
             $table->string('guard_name');
             $table->timestamps();
 

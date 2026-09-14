@@ -1,6 +1,16 @@
 # Meva
 
-Meva is a Laravel API boilerplate, built on **Laravel 13**, PHP 8.4+ and PostgreSQL.
+Meva is an ecommerce portal built on **Laravel 13**, PHP 8.4+ and PostgreSQL,
+with [Lunar](https://lunarphp.com/) providing the commerce domain.
+
+It is **headless**: everything is a web service. The storefront and the
+back-office are both Vue 3 applications talking to this API; Lunar's own
+Filament admin panel is deliberately not installed.
+
+| | |
+| --- | --- |
+| API | `http://localhost:8000/api` (Dingo + JWT) |
+| Frontend | a separate Vue 3 application |
 
 It is built with these packages:
 
@@ -8,6 +18,7 @@ It is built with these packages:
 * [spatie/laravel-permission](https://github.com/spatie/laravel-permission) — roles and permissions
 * [spatie/laravel-activitylog](https://github.com/spatie/laravel-activitylog) — activity logging
 * [andersao/l5-repository](https://github.com/andersao/l5-repository) — repository pattern
+* [lunarphp/core](https://lunarphp.com/) — the ecommerce domain: products, variants, prices, collections, carts, orders and customers
 * [dingo/api](https://github.com/api-ecosystem-for-laravel/dingo-api) — versioned API router and Fractal transformers
 * [laravel/ai](https://github.com/laravel/ai) — the official Laravel AI SDK, wrapped by the AI layer in `src/AI`
 
@@ -52,12 +63,15 @@ docker compose exec app php artisan test
 
 ### Seeded credentials
 
-The `UsersTableSeeder` creates a `super-admin` user:
+The API `super-admin` user, created by `UsersTableSeeder`:
 
 ```
 email:    admin@mail.com
 password: password
 ```
+
+Lunar's commerce tables are migrated alongside the application's own, and the
+catalogue is managed through the admin API rather than a bundled panel.
 
 ## Running without Docker
 
