@@ -13,6 +13,7 @@ class TestingDatabaseSeeder extends Seeder
      */
     public function run()
     {
+        $this->call(\Database\Seeders\LunarBaselineSeeder::class);
         $this->call(RolesTableTestSeeder::class);
         $this->call(PermissionsTableTestSeeder::class);
     }
