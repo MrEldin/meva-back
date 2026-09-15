@@ -14,8 +14,8 @@ export DEBIAN_FRONTEND=noninteractive
 exec > >(tee -a /var/log/meva-setup.log) 2>&1
 
 # ── Edit these ────────────────────────────────────────────────────────────────
-API_DOMAIN="api.meva.rs"       # Laravel API
-APP_DOMAIN="meva.rs"           # Vue storefront
+API_DOMAIN="api.meva.life"     # Laravel API
+APP_DOMAIN="meva.life"         # Vue storefront
 DEPLOY_USER="meva"
 DB_NAME="meva"
 DB_USER="meva"
@@ -50,7 +50,8 @@ fi
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow OpenSSH
-ufw allow 'Nginx Full'
+ufw allow 80/tcp
+ufw allow 443/tcp
 ufw --force enable
 systemctl enable --now fail2ban
 dpkg-reconfigure -f noninteractive unattended-upgrades
@@ -184,7 +185,7 @@ autorestart=true
 stopasgroup=true
 killasgroup=true
 user=www-data
-numprocs=2
+numprocs=1
 redirect_stderr=true
 stdout_logfile=/var/log/supervisor/meva-worker.log
 stopwaitsecs=3600
@@ -254,7 +255,16 @@ git pull --ff-only
 composer install --no-dev --optimize-autoloader --no-interaction
 php artisan migrate --force
 php artisan storage:link || true
-php artisan optimize
+
+# Cache config, events and views -- but never routes: Dingo registers the API
+# on its own router from the withRouting(then:) callback, which Laravel's route
+# cache skips, so a cached route table answers every API call with
+# "The version given was unknown or has no registered routes." (400).
+php artisan config:cache
+php artisan event:cache
+php artisan view:cache
+php artisan route:clear
+
 php artisan queue:restart
 sudo supervisorctl restart all
 sudo systemctl reload php8.4-fpm

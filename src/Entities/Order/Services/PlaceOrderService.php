@@ -3,15 +3,15 @@
 namespace Meva\Entities\Order\Services;
 
 use Illuminate\Support\Facades\DB;
+use Lunar\DataTypes\ShippingOption;
+use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Cart;
 use Lunar\Models\Channel;
 use Lunar\Models\Country;
-use Lunar\DataTypes\Price;
-use Lunar\DataTypes\ShippingOption;
 use Lunar\Models\Currency;
-use Lunar\Models\TaxClass;
 use Lunar\Models\Order;
 use Lunar\Models\ProductVariant;
+use Meva\Entities\Order\Modifiers\FreeShippingModifier;
 use RuntimeException;
 
 /**
@@ -52,19 +52,20 @@ class PlaceOrderService
     /**
      * Attach the shipping option.
      *
-     * Delivery has always been free, but Lunar refuses to create an order
-     * without an option on the cart, so one is set explicitly rather than left
-     * to a manifest the storefront never queries.
+     * Delivery has always been free. The option itself is published by
+     * FreeShippingModifier, which is where Lunar looks for it when the order
+     * is created; here it is simply chosen off the manifest.
      */
     protected function addShipping(Cart $cart): void
     {
-        $cart->setShippingOption(new ShippingOption(
-            name: 'Besplatna dostava',
-            description: 'Isporuka kurirskom službom, 2-3 radna dana.',
-            identifier: 'FREE',
-            price: new Price(0, $cart->currency, 1),
-            taxClass: TaxClass::getDefault() ?? TaxClass::firstOrFail(),
-        ));
+        $option = collect(ShippingManifest::getOptions($cart))
+            ->first(fn (ShippingOption $option): bool => $option->getIdentifier() === FreeShippingModifier::IDENTIFIER);
+
+        if ($option === null) {
+            throw new RuntimeException('Nijedna opcija dostave nije dostupna.');
+        }
+
+        $cart->setShippingOption($option);
     }
 
     /**
