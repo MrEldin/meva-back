@@ -4,6 +4,7 @@ namespace Meva\Api\V1\Controllers\Admin;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Meva\Api\V1\Controllers\Controller;
 use Meva\Entities\Marketing\Models\Subscriber;
@@ -97,50 +98,52 @@ class MarketingController extends Controller
      * dies on the second order. These are the people most likely to make one:
      * the ones whose bottle is running out, the ones who bought once and
      * drifted, and the ones who buy often enough to be worth thanking.
+     *
+     * Four thousand customers' histories are one query and are held for an
+     * hour; nothing here changes minute to minute.
      */
     public function insights(Request $request)
     {
-        $customers = $this->customerHistory();
-        $today = now();
+        return $this->response->array(['data' => $this->compute()])->setStatusCode(Response::HTTP_OK);
+    }
 
-        $days = fn ($date): int => $date ? (int) $today->diffInDays($date) : 9999;
+    /**
+     * @return array<string, mixed>
+     */
+    protected function compute(): array
+    {
+        return Cache::remember('marketing:insights', 3600, function (): array {
+            $customers = $this->customerHistory();
 
-        $due = $customers
-            ->filter(fn ($c): bool => $days($c->last_order) >= 45 && $days($c->last_order) <= 110)
-            ->sortByDesc('spent')
-            ->take(200)
-            ->values();
+            // A window a customer is likely to be running low in: the shop's
+            // own average gap, give or take.
+            $due = $customers->filter(fn ($c): bool => $c->days_since >= 45 && $c->days_since <= 110)
+                ->sortByDesc('spent')->take(200)->values();
 
-        $winback = $customers
-            ->filter(fn ($c): bool => $days($c->last_order) > 180 && $days($c->last_order) < 900)
-            ->sortByDesc('spent')
-            ->take(200)
-            ->values();
+            $winback = $customers->filter(fn ($c): bool => $c->days_since > 180 && $c->days_since < 900)
+                ->sortByDesc('spent')->take(200)->values();
 
-        $loyal = $customers
-            ->filter(fn ($c): bool => (int) $c->orders >= 3)
-            ->sortByDesc('spent')
-            ->take(50)
-            ->values();
+            $loyal = $customers->filter(fn ($c): bool => $c->orders >= 3)
+                ->sortByDesc('spent')->take(50)->values();
 
-        $repeat = $customers->filter(fn ($c): bool => (int) $c->orders > 1)->count();
-        $total = max(1, $customers->count());
+            $repeat = $customers->filter(fn ($c): bool => $c->orders > 1);
+            $total = max(1, $customers->count());
+            $products = $this->lastProducts($due->concat($winback)->concat($loyal));
 
-        return $this->response->array([
-            'data' => [
+            return [
                 'summary' => [
                     'customers' => $customers->count(),
-                    'repeat_customers' => $repeat,
-                    'repeat_rate' => round(($repeat / $total) * 100, 1),
-                    'average_gap_days' => (int) round($customers->where('orders', '>', 1)->avg('gap_days') ?? 0),
+                    'repeat_customers' => $repeat->count(),
+                    'repeat_rate' => round(($repeat->count() / $total) * 100, 1),
+                    'average_gap_days' => (int) round($repeat->avg('gap_days') ?? 0),
                     'average_spend' => (int) round($customers->avg('spent') ?? 0),
                 ],
-                'due' => $this->people($due),
-                'winback' => $this->people($winback),
-                'loyal' => $this->people($loyal),
+                'due' => $this->people($due, $products),
+                'winback' => $this->people($winback, $products),
+                'loyal' => $this->people($loyal, $products),
                 'pairs' => $this->pairs(),
-            ],
-        ])->setStatusCode(Response::HTTP_OK);
+            ];
+        });
     }
 
     /**
@@ -148,8 +151,7 @@ class MarketingController extends Controller
      */
     public function exportList(Request $request, string $list): StreamedResponse
     {
-        $insights = json_decode($this->insights($request)->getContent(), true)['data'] ?? [];
-        $rows = $insights[$list] ?? [];
+        $rows = $this->compute()[$list] ?? [];
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'wb');
@@ -168,7 +170,9 @@ class MarketingController extends Controller
     }
 
     /**
-     * Every customer with what they have bought, from archive and live sales.
+     * Every customer, what they have spent, when they last ordered and how
+     * often -- in one pass, with the details of their latest order attached by
+     * DISTINCT ON rather than a lookup per person.
      */
     protected function customerHistory(): \Illuminate\Support\Collection
     {
@@ -181,52 +185,70 @@ class MarketingController extends Controller
             grouped as (
                 select
                     email,
-                    count(*)                                   as orders,
-                    sum(total)                                 as spent,
-                    max(ordered_at)                            as last_order,
-                    min(ordered_at)                            as first_order
+                    count(*)        as orders,
+                    sum(total)      as spent,
+                    max(ordered_at) as last_order,
+                    min(ordered_at) as first_order
                 from sales
                 group by email
+            ),
+            latest as (
+                select distinct on (lower(customer_email))
+                    lower(customer_email) as email,
+                    id                    as order_id,
+                    customer_name,
+                    customer_phone,
+                    city
+                from archive_orders
+                where customer_email is not null and customer_email <> ''
+                order by lower(customer_email), ordered_at desc
             )
             select
-                g.*,
+                g.email,
+                g.orders::int                                     as orders,
+                g.spent::bigint                                   as spent,
+                g.last_order,
+                (current_date - g.last_order::date)::int          as days_since,
                 case when g.orders > 1
-                     then extract(day from (g.last_order - g.first_order)) / (g.orders - 1)
-                     else null end                             as gap_days,
-                a.customer_name, a.customer_phone, a.city
+                     then ((g.last_order::date - g.first_order::date)::numeric / (g.orders - 1))
+                     else null end                                as gap_days,
+                l.order_id,
+                l.customer_name,
+                l.customer_phone,
+                l.city
             from grouped g
-            left join lateral (
-                select customer_name, customer_phone, city
-                from archive_orders
-                where lower(customer_email) = g.email
-                order by ordered_at desc
-                limit 1
-            ) a on true
+            left join latest l on l.email = g.email
         SQL));
     }
 
     /**
-     * Present a list of customers, with the last thing each of them bought.
+     * What each of these people bought last, in one query over their latest
+     * orders.
+     *
+     * @return \Illuminate\Support\Collection<int|string, string>
+     */
+    protected function lastProducts(\Illuminate\Support\Collection $customers): \Illuminate\Support\Collection
+    {
+        $orderIds = $customers->pluck('order_id')->filter()->unique()->values()->all();
+
+        if ($orderIds === []) {
+            return collect();
+        }
+
+        return DB::table('archive_order_items')
+            ->whereIn('archive_order_id', $orderIds)
+            ->selectRaw('archive_order_id, string_agg(distinct name, \', \') as products')
+            ->groupBy('archive_order_id')
+            ->pluck('products', 'archive_order_id');
+    }
+
+    /**
+     * Present a list of customers.
      *
      * @return array<int, array<string, mixed>>
      */
-    protected function people(\Illuminate\Support\Collection $customers): array
+    protected function people(\Illuminate\Support\Collection $customers, \Illuminate\Support\Collection $products): array
     {
-        $emails = $customers->pluck('email')->all();
-
-        $lastProducts = $emails === [] ? collect() : collect(DB::select(<<<'SQL'
-            select lower(o.customer_email) as email, string_agg(distinct i.name, ', ') as products
-            from archive_orders o
-            join archive_order_items i on i.archive_order_id = o.id
-            where lower(o.customer_email) = any(?)
-              and o.ordered_at = (
-                select max(ordered_at) from archive_orders
-                where lower(customer_email) = lower(o.customer_email)
-              )
-            group by 1
-        SQL, ['{'.implode(',', array_map(fn ($e): string => '"'.str_replace('"', '', (string) $e).'"', $emails)).'}']))
-            ->pluck('products', 'email');
-
         return $customers->map(fn ($c): array => [
             'email' => $c->email,
             'name' => $c->customer_name,
@@ -236,8 +258,8 @@ class MarketingController extends Controller
             'spent' => (int) $c->spent,
             'spent_formatted' => number_format($c->spent / 100, 0, ',', '.').' RSD',
             'last_order' => $c->last_order ? date('Y-m-d', strtotime($c->last_order)) : null,
-            'days_since' => $c->last_order ? (int) now()->diffInDays($c->last_order) : null,
-            'last_products' => $lastProducts[$c->email] ?? null,
+            'days_since' => (int) $c->days_since,
+            'last_products' => $c->order_id ? ($products[$c->order_id] ?? null) : null,
         ])->all();
     }
 
