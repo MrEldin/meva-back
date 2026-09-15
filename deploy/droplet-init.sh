@@ -265,6 +265,10 @@ php artisan event:cache
 php artisan view:cache
 php artisan route:clear
 
+# Transformers change with the code, so the cached catalogue must not survive
+# a deploy.
+php artisan cache:clear
+
 php artisan queue:restart
 sudo supervisorctl restart all
 sudo systemctl reload php8.4-fpm
