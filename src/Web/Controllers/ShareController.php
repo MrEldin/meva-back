@@ -179,6 +179,65 @@ class ShareController extends Controller
     }
 
     /**
+     * The pages that answer what people ask before they order.
+     *
+     * Rendered here as well as in the storefront so a link to them survives
+     * being sent to someone, and so a search engine can read them -- otherwise
+     * nginx hands a crawler to this application and it answers 404, which is
+     * what happened the day they were added.
+     */
+    public function page(string $key)
+    {
+        $pages = [
+            'prica' => [
+                'title' => 'Naša priča — Meva Kozmetika',
+                'description' => 'Kako nastaje Meva: ručno rađeni preparati iz Novog Pazara od 2010, sastav koji se čita i šta rade na koži glave.',
+                'social' => 'Ručno rađeno u Novom Pazaru od 2010. Sastav koji možete pročitati.',
+                'path' => '/prica',
+                'heading' => 'Naša priča',
+                'body' => 'Meva nastaje u Novom Pazaru od 2010. Kuvamo u malim serijama, rukom, i svaka tegla nosi datum kad je napravljena. Sastav je ispisan punim imenom, bez sulfata i bez parabena, a preparati su ispitani u Institutu za javno zdravlje Vojvodine i u Superlabu.',
+            ],
+            'cesta-pitanja' => [
+                'title' => 'Česta pitanja — Meva Kozmetika',
+                'description' => 'Odgovori na pitanja o preparatima Meva Kozmetike, poručivanju, dostavi i upotrebi.',
+                'social' => 'Koliko traje pakovanje, kada se vide rezultati, kako se poručuje.',
+                'path' => '/cesta-pitanja',
+                'heading' => 'Česta pitanja',
+                'body' => 'Koliko traje jedno pakovanje, kada se vide prvi rezultati, može li uz terapiju koju je propisao lekar, i kako se poručuje bez otvaranja naloga.',
+            ],
+            'dostava' => [
+                'title' => 'Dostava — Meva Kozmetika',
+                'description' => 'Besplatna dostava u celoj Srbiji, isporuka za jedan do tri radna dana, plaćanje pouzećem kuriru.',
+                'social' => 'Besplatno u celoj Srbiji, 1–3 radna dana, plaćate kuriru.',
+                'path' => '/dostava',
+                'heading' => 'Dostava',
+                'body' => 'Dostava je besplatna u celoj Srbiji, bez minimalnog iznosa porudžbine. Paket stiže za jedan do tri radna dana, a plaćate kuriru kad stigne.',
+            ],
+            'reklamacije' => [
+                'title' => 'Povrat i reklamacije — Meva Kozmetika',
+                'description' => 'Rok od 14 dana za odustajanje od kupovine, postupak reklamacije i vraćanje novca.',
+                'social' => '14 dana za odustajanje. Ako nešto nije u redu, šaljemo zamenu o našem trošku.',
+                'path' => '/reklamacije',
+                'heading' => 'Povrat i reklamacije',
+                'body' => 'Imate 14 dana da odustanete od kupovine, bez objašnjenja. Ako je proizvod stigao oštećen ili pogrešan, šaljemo novi o našem trošku, a novac vraćamo u roku od 14 dana od prijema robe.',
+            ],
+        ];
+
+        $page = $pages[$key] ?? abort(404);
+
+        return view('share.page', [
+            'title' => $page['title'],
+            'description' => $page['description'],
+            'social' => $page['social'],
+            'url' => $this->storefront().$page['path'],
+            'image' => $this->storefront().'/og-image.jpg',
+            'type' => 'website',
+            'body' => ['name' => $page['heading'], 'text' => $page['body']],
+            'schema' => $this->organisationSchema(),
+        ]);
+    }
+
+    /**
      * Pull a labelled section out of a product description.
      */
     protected function section(string $description, string $label): ?string

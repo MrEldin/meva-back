@@ -30,6 +30,12 @@ Route::get('/proizvodi', [ShareController::class, 'catalog'])->name('share.catal
 Route::get('/sitemap.xml', [ShareController::class, 'sitemap'])->name('share.sitemap');
 Route::get('/robots.txt', [ShareController::class, 'robots'])->name('share.robots');
 
+// The reading pages, so a link to one survives being shared and a search
+// engine can read it.
+Route::get('/{page}', [ShareController::class, 'page'])
+    ->where('page', 'prica|cesta-pitanja|dostava|reklamacije')
+    ->name('share.page');
+
 // Leaving the mailing list. Signed rather than authenticated so one click is
 // enough, and answered on POST too because Gmail and Yahoo send that
 // themselves for one-click unsubscribe.

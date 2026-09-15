@@ -57,9 +57,9 @@
       <img src="{{ $image }}" alt="{{ $body['name'] }}">
       <h1>{{ $body['name'] }}</h1>
       @isset($price)<p class="muted">{{ number_format($price / 100, 0, ',', '.') }} RSD · besplatna dostava u celoj Srbiji</p>@endisset
-      <p>{{ $body['description'] }}</p>
-      @if($body['ingredients'])<h2>Sastav</h2><p>{{ $body['ingredients'] }}</p>@endif
-      @if($body['usage'])<h2>Način upotrebe</h2><p>{{ $body['usage'] }}</p>@endif
+      <p>{{ $body['description'] ?? $body['text'] ?? $description }}</p>
+      @if(!empty($body['ingredients']))<h2>Sastav</h2><p>{{ $body['ingredients'] }}</p>@endif
+      @if(!empty($body['usage']))<h2>Način upotrebe</h2><p>{{ $body['usage'] }}</p>@endif
     @else
       <h1>{{ $title }}</h1>
       <p>{{ $description }}</p>
