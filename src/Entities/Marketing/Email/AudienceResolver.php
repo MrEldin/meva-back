@@ -2,6 +2,7 @@
 
 namespace Meva\Entities\Marketing\Email;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Meva\Entities\Marketing\Models\Subscriber;
 
@@ -66,17 +67,67 @@ class AudienceResolver
     /**
      * Sizes for every segment, for the editor's audience picker.
      *
+     * Counted in one pass over the order history rather than once per segment:
+     * asking eight separate questions of five and a half thousand orders took
+     * two seconds, and this panel has to open instantly. Opt-outs are excluded
+     * inside the query, so the number shown is the number that will be sent.
+     *
      * @return array<string, int>
      */
     public function sizes(?string $testEmail = null): array
     {
-        $sizes = [];
+        $counts = Cache::remember('email:audience-sizes', 300, function (): array {
+            $row = DB::selectOne(<<<'SQL'
+                with sales as (
+                    select lower(customer_email) as email, ordered_at, city
+                    from order_analytics
+                    where status <> 'cancelled' and customer_email is not null and customer_email <> ''
+                ),
+                paced as (
+                    select
+                        email,
+                        count(*)::int                               as orders,
+                        (current_date - max(ordered_at)::date)::int as days_since,
+                        max(city)                                   as city,
+                        case when count(*) > 1
+                             then ((max(ordered_at)::date - min(ordered_at)::date)::numeric / (count(*) - 1))
+                             else null end                          as gap_days
+                    from sales
+                    group by email
+                ),
+                eligible as (
+                    -- Anyone who has opted out is not in any segment, so they
+                    -- are dropped here rather than subtracted afterwards.
+                    select p.* from paced p
+                    where not exists (
+                        select 1 from subscribers s
+                        where lower(s.email) = p.email and s.unsubscribed_at is not null
+                    )
+                )
+                select
+                    count(*)::int                                                                        as customers,
+                    count(*) filter (where orders = 1)::int                                              as new_customers,
+                    count(*) filter (where orders > 1 and days_since >= coalesce(gap_days, 60) * 0.85)::int as due,
+                    count(*) filter (where orders >= 3)::int                                             as loyal,
+                    count(*) filter (where days_since >= 180)::int                                       as winback,
+                    count(*) filter (where lower(city) like '%beograd%')::int                            as belgrade
+                from eligible
+            SQL);
 
-        foreach (self::segments() as $segment) {
-            $sizes[$segment['key']] = $this->count($segment['key'], $testEmail);
-        }
+            return [
+                'customers' => (int) $row->customers,
+                'new' => (int) $row->new_customers,
+                'due' => (int) $row->due,
+                'loyal' => (int) $row->loyal,
+                'winback' => (int) $row->winback,
+                'city-belgrade' => (int) $row->belgrade,
+                'subscribers' => Subscriber::query()->active()->count(),
+            ];
+        });
 
-        return $sizes;
+        $counts['test'] = $testEmail ? 1 : 0;
+
+        return $counts;
     }
 
     /**
