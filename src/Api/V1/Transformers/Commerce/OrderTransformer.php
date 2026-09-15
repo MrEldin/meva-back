@@ -41,7 +41,20 @@ class OrderTransformer extends TransformerAbstract
         'delivered' => 'Isporučeno',
         'returned' => 'Vraćeno',
         'cancelled' => 'Otkazano',
+        // What the old shop called them, so the history reads in one language.
+        'processing' => 'Završeno (arhiva)',
+        'completed' => 'Završeno (arhiva)',
+        'refunded' => 'Refundirano',
+        'failed' => 'Neuspelo',
+        'on-hold' => 'Na čekanju',
+        'pending' => 'Neplaćeno',
     ];
+
+    /**
+     * The statuses an order may actually be moved to. The archive's own are
+     * history and never offered.
+     */
+    public const CHANGEABLE = ['awaiting-dispatch', 'dispatched', 'delivered', 'returned', 'cancelled'];
 
     public function includeLines(Order $order)
     {

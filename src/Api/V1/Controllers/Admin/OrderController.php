@@ -85,7 +85,7 @@ class OrderController extends Controller
         }
 
         $request->validate([
-            'status' => 'required|string|in:'.implode(',', array_keys(OrderTransformer::STATUSES)),
+            'status' => 'required|string|in:'.implode(',', OrderTransformer::CHANGEABLE),
             'notes' => 'nullable|string|max:2000',
         ]);
 
