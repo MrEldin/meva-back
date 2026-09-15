@@ -23,7 +23,9 @@ class CampaignMail extends Mailable
 
     public function __construct(
         public string $subjectLine,
-        public string $html,
+        // Not $html: Mailable declares that property itself, and redeclaring
+        // it is a fatal error rather than an override.
+        public string $htmlBody,
         public string $plain,
         public string $unsubscribeUrl,
         public string $campaignKey,
@@ -39,7 +41,7 @@ class CampaignMail extends Mailable
         // The plain-text half goes through a one-line view because a Content
         // takes a view name for text, not a string.
         return new Content(
-            htmlString: $this->html,
+            htmlString: $this->htmlBody,
             text: 'emails.plain',
             with: ['plain' => $this->plain],
         );

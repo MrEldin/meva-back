@@ -65,7 +65,7 @@ class SendCampaign implements ShouldQueue
             try {
                 Mail::to($email)->send(new CampaignMail(
                     subjectLine: ($this->test ? '[PROBA] ' : '').(string) $campaign->subject,
-                    html: $renderer->render($campaign, $tokens),
+                    htmlBody: $renderer->render($campaign, $tokens),
                     plain: (new EmailRenderer)->renderText($campaign, $tokens),
                     unsubscribeUrl: $unsubscribe,
                     campaignKey: 'meva-campaign-'.$campaign->id,
