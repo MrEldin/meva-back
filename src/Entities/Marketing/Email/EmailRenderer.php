@@ -274,7 +274,11 @@ HTML;
             return $this->placeholder('Izaberite proizvod za ovaj blok.');
         }
 
-        $benefit = $this->field($b, 'benefit') ?: ($product['short_description'] ?? '');
+        // The shop's own description is the whole label, ingredient list and
+        // all. In an e-mail that is a wall of text nobody reads, so the
+        // fallback is cut to its opening thought and the editor is expected to
+        // write one benefit in its place.
+        $benefit = $this->field($b, 'benefit') ?: $this->opening($product['short_description'] ?? '');
         $label = $this->field($b, 'button_label', 'Poruči');
 
         $image = $product['image']
@@ -294,6 +298,33 @@ HTML;
             .$price
             .$this->buttonHtml($label, $product['url'], self::TERRACOTTA)
             .'</td></tr></table></td></tr>';
+    }
+
+    /**
+     * The first sentence of a description, at most a line and a half.
+     */
+    protected function opening(string $text, int $limit = 150): string
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', $text) ?? '');
+
+        if ($text === '') {
+            return '';
+        }
+
+        // Stop at the first full stop that is not part of an abbreviation or a
+        // decimal, and never mid-word.
+        if (preg_match('/^(.{40,'.$limit.'}?[.!?])\s/u', $text, $match) === 1) {
+            return rtrim($match[1], ' .').'.';
+        }
+
+        if (mb_strlen($text) <= $limit) {
+            return $text;
+        }
+
+        $cut = mb_substr($text, 0, $limit);
+        $space = mb_strrpos($cut, ' ');
+
+        return rtrim($space === false ? $cut : mb_substr($cut, 0, $space), ' ,;:').'…';
     }
 
     protected function productGrid(array $b): string
