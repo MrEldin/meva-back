@@ -68,6 +68,7 @@ class TemplateLibrary
     {
         return [
             'key' => 'welcome',
+            'audience' => 'subscribers',
             'stage' => 'Prvi kontakt',
             'name' => 'Dobrodošlica',
             'subject' => 'Drago nam je što ste tu, {ime}',
@@ -91,6 +92,7 @@ class TemplateLibrary
     {
         return [
             'key' => 'introduction',
+            'audience' => 'subscribers',
             'stage' => 'Prvi kontakt',
             'name' => 'Predstavljanje proizvoda',
             'subject' => 'Ovo je preparat od kog sve počinje',
@@ -114,6 +116,7 @@ class TemplateLibrary
     {
         return [
             'key' => 'education',
+            'audience' => 'customers',
             'stage' => 'Poverenje',
             'name' => 'Saveti i edukacija',
             'subject' => 'Zašto se perut vraća (i šta tu pomaže)',
@@ -136,6 +139,7 @@ class TemplateLibrary
     {
         return [
             'key' => 'social-proof',
+            'audience' => 'customers',
             'stage' => 'Poverenje',
             'name' => 'Iskustva kupaca',
             'subject' => 'Šta kažu ljudi koji su probali',
@@ -158,6 +162,7 @@ class TemplateLibrary
     {
         return [
             'key' => 'reminder',
+            'audience' => 'customers',
             'stage' => 'Podsticaj',
             'name' => 'Podsetnik',
             'subject' => 'Još uvek vas čeka',
@@ -178,6 +183,7 @@ class TemplateLibrary
     {
         return [
             'key' => 'replenishment',
+            'audience' => 'due',
             'stage' => 'Podsticaj',
             'name' => 'Vreme je za dopunu',
             'subject' => 'Verovatno vam je pri kraju',
@@ -199,6 +205,7 @@ class TemplateLibrary
     {
         return [
             'key' => 'offer',
+            'audience' => 'customers',
             'stage' => 'Ponuda',
             'name' => 'Ponuda sa rokom',
             'subject' => '−15% do nedelje',
@@ -221,6 +228,7 @@ class TemplateLibrary
     {
         return [
             'key' => 'abandoned-cart',
+            'audience' => 'customers',
             'stage' => 'Ponuda',
             'name' => 'Napuštena korpa',
             'subject' => 'Ostavili ste nešto u korpi',
@@ -243,6 +251,7 @@ class TemplateLibrary
     {
         return [
             'key' => 'bundle',
+            'audience' => 'customers',
             'stage' => 'Ponuda',
             'name' => 'Set koji se kupuje zajedno',
             'subject' => 'Ovo dvoje ide zajedno',
@@ -263,6 +272,7 @@ class TemplateLibrary
     {
         return [
             'key' => 'new-product',
+            'audience' => 'loyal',
             'stage' => 'Ponuda',
             'name' => 'Novo u ponudi',
             'subject' => 'Nešto novo iz naše kuhinje',
@@ -284,6 +294,7 @@ class TemplateLibrary
     {
         return [
             'key' => 'review-request',
+            'audience' => 'new',
             'stage' => 'Posle kupovine',
             'name' => 'Molba za utisak',
             'subject' => 'Kako vam se pokazalo?',
@@ -304,6 +315,7 @@ class TemplateLibrary
     {
         return [
             'key' => 'winback',
+            'audience' => 'winback',
             'stage' => 'Povratak',
             'name' => 'Vraćanje kupca',
             'subject' => 'Nedostajete nam, {ime}',
@@ -325,6 +337,7 @@ class TemplateLibrary
     {
         return [
             'key' => 'loyalty',
+            'audience' => 'loyal',
             'stage' => 'Povratak',
             'name' => 'Hvala vernim kupcima',
             'subject' => 'Hvala vam, iskreno',
@@ -345,6 +358,7 @@ class TemplateLibrary
     {
         return [
             'key' => 'seasonal',
+            'audience' => 'customers',
             'stage' => 'Povratak',
             'name' => 'Sezonska poruka',
             'subject' => 'Zima je stigla, koža to zna',
@@ -365,6 +379,7 @@ class TemplateLibrary
     {
         return [
             'key' => 'blank',
+            'audience' => 'subscribers',
             'stage' => 'Od nule',
             'name' => 'Prazna kampanja',
             'subject' => '',

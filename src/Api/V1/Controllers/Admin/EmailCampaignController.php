@@ -98,7 +98,8 @@ class EmailCampaignController extends Controller
             'template' => $template['key'],
             'subject' => $template['subject'],
             'preheader' => $template['preheader'],
-            'audience' => 'subscribers',
+            // Each template knows the group it is written for.
+            'audience' => $template['audience'] ?? 'subscribers',
             'blocks' => TemplateLibrary::blocks($template['key']),
             'status' => 'draft',
             'created_by' => Auth::id(),
