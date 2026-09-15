@@ -25,5 +25,7 @@ $api->version('v1', function ($api) {
         $api->get('subscribers', MarketingController::class.'@subscribers')->name('subscribers');
         $api->get('subscribers/export', MarketingController::class.'@exportSubscribers')->name('subscribers.export');
         $api->get('campaigns', MarketingController::class.'@campaigns')->name('campaigns');
+        $api->get('insights', MarketingController::class.'@insights')->name('insights');
+        $api->get('lists/{list}', MarketingController::class.'@exportList')->where(['list' => 'due|winback|loyal'])->name('lists');
     });
 });

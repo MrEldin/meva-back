@@ -154,7 +154,7 @@ class OrderController extends Controller
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'wb');
-            fputcsv($out, ['Broj', 'Datum', 'Status', 'Kupac', 'Telefon', 'E-mail', 'Grad', 'Artikli', 'Iznos (RSD)', 'Poreklo']);
+            fputcsv($out, ['Broj', 'Datum', 'Status', 'Kupac', 'Telefon', 'E-mail', 'Grad', 'Šta je poručeno', 'Iznos (RSD)', 'Poreklo']);
 
             foreach ($rows as $row) {
                 fputcsv($out, [
@@ -165,7 +165,7 @@ class OrderController extends Controller
                     $row->customer_phone,
                     $row->customer_email,
                     $row->city,
-                    (int) $row->items,
+                    collect($row->articles ?? [])->map(fn (array $a): string => "{$a['name']} ×{$a['quantity']}")->implode('; '),
                     number_format($row->total / 100, 2, ',', ''),
                     $row->origin === 'live' ? 'nova' : 'arhiva',
                 ]);
@@ -290,20 +290,27 @@ class OrderController extends Controller
         $live = $liveIds === [] ? collect() : DB::table('lunar_order_lines')
             ->whereIn('order_id', $liveIds)
             ->where('type', 'physical')
-            ->selectRaw('order_id, sum(quantity) as items')
-            ->groupBy('order_id')
-            ->pluck('items', 'order_id');
+            ->select('order_id', 'description as name', 'quantity')
+            ->get()
+            ->groupBy('order_id');
 
         $archive = $archiveIds === [] ? collect() : DB::table('archive_order_items')
             ->whereIn('archive_order_id', $archiveIds)
-            ->selectRaw('archive_order_id, sum(quantity) as items')
-            ->groupBy('archive_order_id')
-            ->pluck('items', 'archive_order_id');
+            ->select('archive_order_id', 'name', 'quantity')
+            ->get()
+            ->groupBy('archive_order_id');
 
         return $rows->each(function ($row) use ($live, $archive): void {
-            $row->items = $row->origin === 'live'
-                ? (int) ($live[(int) $row->key] ?? 0)
-                : (int) ($archive[(int) substr($row->key, 1)] ?? 0);
+            $lines = $row->origin === 'live'
+                ? ($live[(int) $row->key] ?? collect())
+                : ($archive[(int) substr($row->key, 1)] ?? collect());
+
+            $row->items = (int) $lines->sum('quantity');
+            // What was actually ordered, so the list answers "which nine?"
+            $row->articles = $lines
+                ->map(fn ($line): array => ['name' => $line->name, 'quantity' => (int) $line->quantity])
+                ->values()
+                ->all();
         });
     }
 
@@ -351,6 +358,7 @@ class OrderController extends Controller
             'total' => (int) $row->total,
             'total_formatted' => OrderTransformer::money((int) $row->total),
             'items' => (int) $row->items,
+            'articles' => $row->articles ?? [],
             'customer_name' => $row->customer_name ?: null,
             'customer_email' => $row->customer_email ?: null,
             'city' => $row->city ?: null,
