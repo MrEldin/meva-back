@@ -147,6 +147,38 @@ server {
 }
 NGINX
 
+# Messengers, search engines and assistants do not run the storefront's
+# JavaScript, so their requests for *pages* are answered by the API, which
+# renders the same pages server-side with Open Graph and schema.org tags.
+cat > /etc/nginx/conf.d/meva-crawlers.conf <<'NGINX'
+map $http_user_agent $meva_crawler {
+    default 0;
+    "~*facebookexternalhit|facebookcatalog|WhatsApp|Viber|Telegram|Discordbot|Slackbot|LinkedInBot|Twitterbot|Pinterest|SkypeUriPreview|redditbot|vkShare|Applebot" 1;
+    "~*Googlebot|Google-InspectionTool|Storebot-Google|bingbot|BingPreview|DuckDuckBot|YandexBot|Baiduspider|Seznam|Qwantify" 1;
+    "~*GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Perplexity-User|Google-Extended|Amazonbot|Bytespider|CCBot|cohere-ai|YouBot|Meta-ExternalAgent" 1;
+}
+
+# The API, reachable from this machine only, for those requests.
+server {
+    listen 127.0.0.1:8081;
+    server_name _;
+    root /var/www/meva-back/public;
+    index index.php;
+
+    location / { try_files $uri $uri/ /index.php?$query_string; }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $realpath_root;
+        fastcgi_param HTTPS on;
+    }
+
+    access_log /var/log/nginx/meva-crawlers.access.log;
+}
+NGINX
+
 cat > /etc/nginx/sites-available/meva-client <<NGINX
 server {
     listen 80;
@@ -162,8 +194,36 @@ server {
     location /api/     { proxy_pass http://127.0.0.1:80/api/; proxy_set_header Host $API_DOMAIN; proxy_set_header X-Forwarded-For \$remote_addr; }
     location /storage/ { proxy_pass http://127.0.0.1:80/storage/; proxy_set_header Host $API_DOMAIN; }
 
-    location /assets/ { expires 1y; add_header Cache-Control "public, immutable"; }
-    location / { try_files \$uri \$uri/ /index.html; }
+    # ^~ so the built assets keep their year-long cache: the regex further down
+    # would otherwise outrank a plain prefix and serve them with no headers.
+    location ^~ /assets/ { expires 1y; add_header Cache-Control "public, immutable"; }
+
+    # The sitemap, robots and the advert feed are rendered by the API.
+    location = /sitemap.xml { proxy_pass http://127.0.0.1:8081; proxy_set_header Host \$host; proxy_set_header X-Forwarded-Proto https; }
+    location = /robots.txt  { proxy_pass http://127.0.0.1:8081; proxy_set_header Host \$host; proxy_set_header X-Forwarded-Proto https; }
+    location ^~ /feed/      { proxy_pass http://127.0.0.1:8081; proxy_set_header Host \$host; proxy_set_header X-Forwarded-Proto https; }
+
+    # Files are files, whoever asks for them. Without this a messenger fetching
+    # the share picture is sent to the API along with the page it came from,
+    # and gets a 404 instead of an image -- so the card arrives with no picture.
+    # The regex outranks the prefix match below, which is the whole point.
+    location ~* \.(?:jpe?g|png|gif|webp|avif|svg|ico|css|js|mjs|map|woff2?|ttf|otf|eot|mp4|webm|pdf|json)\$ {
+        try_files \$uri =404;
+    }
+
+    location / {
+        # Crawlers get the server-rendered page; people get the app. nginx has
+        # no "if" that can proxy directly, so the 418 is a jump to @crawler.
+        if (\$meva_crawler) { return 418; }
+        error_page 418 = @crawler;
+        try_files \$uri \$uri/ /index.html;
+    }
+
+    location @crawler {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-Proto https;
+    }
 
     access_log /var/log/nginx/meva-client.access.log;
     error_log  /var/log/nginx/meva-client.error.log;
