@@ -35,6 +35,9 @@ class ShareController extends Controller
         return view('share.page', [
             'title' => 'Meva Kozmetika — prirodna nega kože i kose',
             'description' => 'Ručno rađena prirodna kozmetika iz Novog Pazara od 2010. Preparati za seboreju, psorijazu, ekcem, akne i negu kose. Besplatna dostava, plaćanje pouzećem.',
+            // Messengers cut after about two lines, so the card says the two
+            // things a stranger weighs before clicking.
+            'social' => 'Ručno rađeno u Novom Pazaru od 2010. Besplatna dostava, plaćate kuriru.',
             'url' => $this->storefront().'/',
             'image' => $this->storefront().'/og-image.jpg',
             'type' => 'website',
@@ -61,6 +64,9 @@ class ShareController extends Controller
             'description' => $collection
                 ? "Preparati iz kategorije {$name} — ručno rađena prirodna kozmetika Meva. Besplatna dostava u celoj Srbiji."
                 : "Svih {$count} preparata Meva Kozmetike: nega kože, kosa, seboreja, psorijaza, ekcem i akne. Besplatna dostava, plaćanje pouzećem.",
+            'social' => $collection
+                ? "Preparati za {$name}. Besplatna dostava, plaćate kuriru."
+                : "Svih {$count} preparata. Besplatna dostava, plaćate kuriru.",
             'url' => $this->storefront().'/proizvodi'.($category ? '?kategorija='.$category : ''),
             'image' => $this->storefront().'/og-image.jpg',
             'type' => 'website',
@@ -86,7 +92,12 @@ class ShareController extends Controller
         $short = trim(Str::of((string) $product->attribute_data?->get('short_description'))->stripTags()->squish());
         $variant = $product->variants->first();
         $price = $variant?->prices->firstWhere('currency.code', 'RSD') ?? $variant?->prices->first();
-        $image = $product->getFirstMediaUrl('images') ?: $this->storefront().'/og-image.jpg';
+        // The original photographs are 4440px square and over two megabytes;
+        // a messenger gives up long before one arrives. Lunar already keeps an
+        // 800px version beside it, which is thirty kilobytes and plenty for a
+        // card that is never shown wider than a phone.
+        $image = $product->getFirstMediaUrl('images', 'large')
+            ?: ($product->getFirstMediaUrl('images') ?: $this->storefront().'/og-image.jpg');
         $url = $this->storefront().'/proizvod/'.$slug;
 
         $summary = Str::limit($short !== '' ? $short : $description, 180);
@@ -95,6 +106,9 @@ class ShareController extends Controller
         return view('share.page', [
             'title' => $name.' — Meva Kozmetika',
             'description' => $summary.($amount ? ' · '.number_format($amount / 100, 0, ',', '.').' RSD · besplatna dostava' : ''),
+            // One sentence and the price. The long description is for search.
+            'social' => Str::limit($short !== '' ? $short : $description, 95)
+                .($amount ? ' · '.number_format($amount / 100, 0, ',', '.').' RSD · besplatna dostava' : ''),
             'url' => $url,
             'image' => $image,
             'type' => 'product',
