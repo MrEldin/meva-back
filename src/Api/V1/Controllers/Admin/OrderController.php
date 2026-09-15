@@ -37,8 +37,9 @@ class OrderController extends Controller
             ->fromSub($query, 'orders')
             ->orderByDesc('placed_at')
             ->forPage($page, $perPage)
-            ->get()
-            ->map(fn ($row): array => $this->present($row));
+            ->get();
+
+        $rows = $this->withItemCounts($rows)->map(fn ($row): array => $this->present($row));
 
         $paginator = new LengthAwarePaginator($rows, $total, $perPage, $page);
 
@@ -147,7 +148,9 @@ class OrderController extends Controller
      */
     public function export(Request $request): StreamedResponse
     {
-        $rows = DB::query()->fromSub($this->unified($request), 'orders')->orderByDesc('placed_at')->get();
+        $rows = $this->withItemCounts(
+            DB::query()->fromSub($this->unified($request), 'orders')->orderByDesc('placed_at')->get()
+        );
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'wb');
@@ -195,7 +198,9 @@ class OrderController extends Controller
                 coalesce(o.customer_reference, '') as customer_email,
                 coalesce(a.contact_phone, '') as customer_phone,
                 coalesce(a.city, '') as city,
-                (select coalesce(sum(l.quantity), 0) from lunar_order_lines l where l.order_id = o.id and l.type = 'physical') as items
+                '' as utm_source,
+                '' as device_type,
+                'cod' as payment_method
             ");
 
         $archive = DB::table('archive_orders as o')
@@ -210,7 +215,9 @@ class OrderController extends Controller
                 coalesce(o.customer_email, '') as customer_email,
                 coalesce(o.customer_phone, '') as customer_phone,
                 coalesce(o.city, '') as city,
-                (select coalesce(sum(i.quantity), 0) from archive_order_items i where i.archive_order_id = o.id) as items
+                coalesce(o.utm_source, '') as utm_source,
+                coalesce(o.device_type, '') as device_type,
+                coalesce(o.payment_method, '') as payment_method
             ");
 
         $union = DB::query()->fromSub($live->unionAll($archive), 'orders');
@@ -231,6 +238,29 @@ class OrderController extends Controller
             $union->where('placed_at', '<=', $to->endOfDay());
         }
 
+        if ($city = trim((string) $request->input('grad'))) {
+            $union->where('city', 'ilike', '%'.$city.'%');
+        }
+
+        if ($source = $request->input('izvor')) {
+            $source === 'direktno'
+                ? $union->where('utm_source', '')
+                : $union->where('utm_source', $source);
+        }
+
+        if ($device = $request->input('uredjaj')) {
+            $union->where('device_type', $device);
+        }
+
+        // Amounts are typed in dinars and stored in minor units.
+        if ($request->filled('min')) {
+            $union->where('total', '>=', (int) round(((float) $request->input('min')) * 100));
+        }
+
+        if ($request->filled('max')) {
+            $union->where('total', '<=', (int) round(((float) $request->input('max')) * 100));
+        }
+
         if ($term = trim((string) $request->input('q'))) {
             $like = '%'.$term.'%';
 
@@ -244,6 +274,64 @@ class OrderController extends Controller
         }
 
         return $union;
+    }
+
+    /**
+     * How many articles each order on this page holds.
+     *
+     * Two grouped queries over the page's own ids, rather than a correlated
+     * subquery per row over the whole history.
+     */
+    protected function withItemCounts(\Illuminate\Support\Collection $rows): \Illuminate\Support\Collection
+    {
+        $liveIds = $rows->where('origin', 'live')->pluck('key')->all();
+        $archiveIds = $rows->where('origin', 'archive')->map(fn ($r): int => (int) substr($r->key, 1))->all();
+
+        $live = $liveIds === [] ? collect() : DB::table('lunar_order_lines')
+            ->whereIn('order_id', $liveIds)
+            ->where('type', 'physical')
+            ->selectRaw('order_id, sum(quantity) as items')
+            ->groupBy('order_id')
+            ->pluck('items', 'order_id');
+
+        $archive = $archiveIds === [] ? collect() : DB::table('archive_order_items')
+            ->whereIn('archive_order_id', $archiveIds)
+            ->selectRaw('archive_order_id, sum(quantity) as items')
+            ->groupBy('archive_order_id')
+            ->pluck('items', 'archive_order_id');
+
+        return $rows->each(function ($row) use ($live, $archive): void {
+            $row->items = $row->origin === 'live'
+                ? (int) ($live[(int) $row->key] ?? 0)
+                : (int) ($archive[(int) substr($row->key, 1)] ?? 0);
+        });
+    }
+
+    /**
+     * The values the filters offer, taken from the orders themselves.
+     */
+    public function filters()
+    {
+        $cities = DB::table('archive_orders')
+            ->selectRaw("coalesce(nullif(city, ''), 'nepoznato') as label, count(*) as orders")
+            ->groupBy('label')->orderByDesc('orders')->limit(25)->get();
+
+        $sources = DB::table('archive_orders')
+            ->selectRaw("coalesce(nullif(utm_source, ''), 'direktno') as label, count(*) as orders")
+            ->groupBy('label')->orderByDesc('orders')->limit(15)->get();
+
+        $devices = DB::table('archive_orders')
+            ->selectRaw("coalesce(nullif(device_type, ''), 'nepoznato') as label, count(*) as orders")
+            ->groupBy('label')->orderByDesc('orders')->get();
+
+        return $this->response->array([
+            'data' => [
+                'cities' => $cities->map(fn ($r): array => ['value' => $r->label, 'orders' => (int) $r->orders])->all(),
+                'sources' => $sources->map(fn ($r): array => ['value' => $r->label, 'orders' => (int) $r->orders])->all(),
+                'devices' => $devices->map(fn ($r): array => ['value' => $r->label, 'orders' => (int) $r->orders])->all(),
+                'statuses' => collect(OrderTransformer::STATUSES)->map(fn ($label, $value): array => ['value' => $value, 'label' => $label])->values()->all(),
+            ],
+        ])->setStatusCode(Response::HTTP_OK);
     }
 
     /**

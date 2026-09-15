@@ -22,6 +22,7 @@ $api->version('v1', function ($api) {
     ], function ($api) {
         $api->get('', OrderController::class.'@index')->name('index');
         $api->get('summary', OrderController::class.'@summary')->name('summary');
+        $api->get('filters', OrderController::class.'@filters')->name('filters');
         $api->get('export', OrderController::class.'@export')->name('export');
         $api->get('{id}', OrderController::class.'@show')->where(['id' => '[a-z0-9]+'])->name('show');
     });
