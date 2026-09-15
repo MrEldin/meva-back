@@ -16,8 +16,7 @@ class DatabaseSeeder extends Seeder
         $this->call(LunarBaselineSeeder::class);
         $this->call(Meva\CatalogueSeeder::class);
         $this->call(Meva\ArchiveSeeder::class);
-        $this->call(RolesTableSeeder::class);
+        $this->call(AccessSeeder::class);
         $this->call(UsersTableSeeder::class);
-        $this->call(PermissionsTableSeeder::class);
     }
 }

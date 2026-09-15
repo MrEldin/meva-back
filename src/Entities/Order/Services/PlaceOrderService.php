@@ -41,8 +41,16 @@ class PlaceOrderService
             $order->update([
                 'status' => 'awaiting-dispatch',
                 'placed_at' => now(),
-                'customer_reference' => $data['customer']['email'] ?? null,
+                // Stored lower-cased so an order can be found later whatever
+                // way the customer typed their address.
+                'customer_reference' => isset($data['customer']['email'])
+                    ? mb_strtolower(trim($data['customer']['email']))
+                    : null,
                 'notes' => $data['customer']['note'] ?? null,
+                // A signed-in customer sees the order in their account at once;
+                // a guest's order is claimed when they register with the same
+                // e-mail.
+                'user_id' => auth()->id(),
             ]);
 
             return $order->refresh();

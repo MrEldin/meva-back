@@ -44,10 +44,37 @@ class AuthController extends Controller
      */
     public function user()
     {
+        $user = auth()->user();
+
         return response()->json(['data' => array_merge(
-            auth()->user()->toArray(),
-            ['permissions' => auth()->user()->getAllPermissions()->pluck('name')->toArray()]
+            $user->toArray(),
+            [
+                'roles' => $user->getRoleNames()->values()->all(),
+                'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),
+            ]
         )]);
+    }
+
+    /**
+     * Change the signed-in user's own name, e-mail or password.
+     */
+    public function updateProfile(\Meva\Api\V1\Requests\User\ProfileUpdateRequest $request)
+    {
+        $user = auth()->user();
+
+        $user->fill($request->only(['first_name', 'last_name', 'email']));
+
+        if ($request->filled('password')) {
+            if (! \Illuminate\Support\Facades\Hash::check($request->input('current_password'), $user->password)) {
+                return response()->json(['message' => 'Trenutna lozinka nije tačna.'], 422);
+            }
+
+            $user->password = $request->input('password');
+        }
+
+        $user->save();
+
+        return $this->user();
     }
 
 
@@ -84,10 +111,16 @@ class AuthController extends Controller
      */
     protected function respondWithToken($token)
     {
+        $user = auth()->user();
+
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth()->factory()->getTTL() * 60
+            'expires_in' => auth()->factory()->getTTL() * 60,
+            'user' => $user ? array_merge($user->only(['id', 'first_name', 'last_name', 'email']), [
+                'roles' => $user->getRoleNames()->values()->all(),
+                'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),
+            ]) : null,
         ]);
     }
 }

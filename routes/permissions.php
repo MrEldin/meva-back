@@ -16,7 +16,7 @@ $api = app('Dingo\Api\Routing\Router');
 
 $api->version('v1', function ($api) {
     $api->group([
-        'middleware' => ['api'],
+        'middleware' => ['api', 'auth', 'permission:users.manage'],
         'prefix'     => 'permissions',
         'as'         => 'permissions'
     ], function ($api) {

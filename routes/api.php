@@ -22,5 +22,6 @@ $api->version('v1', function ($api) {
         $api->post('logout', AuthController::class . '@logout');
         $api->get('refresh', AuthController::class . '@refresh');
         $api->get('user', AuthController::class . '@user');
+        $api->put('profile', AuthController::class . '@updateProfile');
     });
 });

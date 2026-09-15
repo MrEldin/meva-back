@@ -4,6 +4,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Storefront
+    |--------------------------------------------------------------------------
+    |
+    | Where the shop lives. Canonical links, share cards, the sitemap and the
+    | advert feed all point at this address rather than at the API's own.
+    |
+    */
+
+    'storefront_url' => env('STOREFRONT_URL', 'https://meva.life'),
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Catalogue Import
     |--------------------------------------------------------------------------
     |

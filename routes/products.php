@@ -17,13 +17,20 @@ $api = app('Dingo\Api\Routing\Router');
 
 $api->version('v1', function ($api) {
     $api->group([
-        'middleware' => ['api'],
+        'middleware' => ['api', 'auth', 'permission:products.view'],
         'prefix' => 'admin/products',
         'as' => 'admin.products',
     ], function ($api) {
         $api->get('', ProductController::class.'@index')->name('index');
-        $api->post('', ProductController::class.'@create')->name('create');
         $api->get('{id}', ProductController::class.'@show')->name('show');
+    });
+
+    $api->group([
+        'middleware' => ['api', 'auth', 'permission:products.manage'],
+        'prefix' => 'admin/products',
+        'as' => 'admin.products',
+    ], function ($api) {
+        $api->post('', ProductController::class.'@create')->name('create');
         $api->put('{id}', ProductController::class.'@update')->name('update');
         $api->delete('{id}', ProductController::class.'@destroy')->name('destroy');
     });
@@ -31,7 +38,7 @@ $api->version('v1', function ($api) {
 
 $api->version('v1', function ($api) {
     $api->group([
-        'middleware' => ['api', 'auth'],
+        'middleware' => ['api', 'auth', 'permission:analytics.view'],
         'prefix' => 'admin',
         'as' => 'admin',
     ], function ($api) {

@@ -14,7 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function () {
             // Dingo route files register themselves on the Dingo router, so they
             // only need to be loaded once the application has booted.
-            foreach (['users', 'roles', 'permissions', 'products', 'shop'] as $routes) {
+            foreach (['users', 'roles', 'permissions', 'products', 'orders', 'shop', 'account', 'marketing'] as $routes) {
                 require base_path("routes/{$routes}.php");
             }
         },
@@ -40,6 +40,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // than a redirect to a login route that does not exist.
         $middleware->alias([
             'auth' => Authenticate::class,
+            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

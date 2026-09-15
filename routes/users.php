@@ -14,9 +14,25 @@ $api = app('Dingo\Api\Routing\Router');
 |
 */
 
+use Meva\Api\V1\Controllers\Admin\TeamController;
+
 $api->version('v1', function ($api) {
     $api->group([
-        'middleware' => ['api'],
+        'middleware' => ['api', 'auth', 'permission:users.manage'],
+        'prefix' => 'admin/team',
+        'as' => 'admin.team',
+    ], function ($api) {
+        $api->get('', TeamController::class.'@index')->name('index');
+        $api->post('', TeamController::class.'@store')->name('store');
+        $api->get('roles', TeamController::class.'@roles')->name('roles');
+        $api->put('{id}', TeamController::class.'@update')->name('update');
+        $api->delete('{id}', TeamController::class.'@destroy')->name('destroy');
+    });
+});
+
+$api->version('v1', function ($api) {
+    $api->group([
+        'middleware' => ['api', 'auth', 'permission:users.manage'],
         'prefix'     => 'users',
         'as'         => 'users'
     ], function ($api) {

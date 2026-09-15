@@ -18,4 +18,18 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', fn () => view('welcome'));
+use Meva\Web\Controllers\FeedController;
+use Meva\Web\Controllers\ShareController;
+
+// Messengers, search engines and assistants do not run the storefront's
+// JavaScript. nginx forwards their requests for these paths here, where the
+// same pages are rendered server-side with proper tags and readable text.
+Route::get('/proizvod/{slug}', [ShareController::class, 'product'])->name('share.product');
+Route::get('/proizvodi', [ShareController::class, 'catalog'])->name('share.catalog');
+Route::get('/sitemap.xml', [ShareController::class, 'sitemap'])->name('share.sitemap');
+Route::get('/robots.txt', [ShareController::class, 'robots'])->name('share.robots');
+
+// The catalogue Meta and Google read for shopping adverts.
+Route::get('/feed/proizvodi.xml', [FeedController::class, 'products'])->name('feed.products');
+
+Route::get('/', [ShareController::class, 'home'])->name('share.home');
