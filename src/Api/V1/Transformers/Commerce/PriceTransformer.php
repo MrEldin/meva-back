@@ -17,7 +17,7 @@ class PriceTransformer extends TransformerAbstract
             'currency' => $price->currency?->code,
             // Lunar stores money in minor units; both are exposed so a client
             // never has to guess which one it is looking at.
-            'amount_minor' => (int) $price->price->value,
+            'amount_minor' => (int) \Meva\Entities\Catalogue\Money::minor($price),
             'amount' => $price->price->decimal(),
             'min_quantity' => (int) $price->min_quantity,
         ];

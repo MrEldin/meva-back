@@ -39,7 +39,7 @@ class FeedController extends Controller
                     'description' => Str::limit($description !== '' ? $description : (string) $product->attribute_data?->get('name'), 4800),
                     'link' => $storefront.'/proizvod/'.$slug,
                     'image' => $product->getFirstMediaUrl('images'),
-                    'price' => number_format(((int) $price->price->value) / 100, 2, '.', '').' RSD',
+                    'price' => number_format(((int) \Meva\Entities\Catalogue\Money::minor($price)) / 100, 2, '.', '').' RSD',
                     'category' => $product->collections->first()?->attribute_data?->get('name'),
                 ];
             })

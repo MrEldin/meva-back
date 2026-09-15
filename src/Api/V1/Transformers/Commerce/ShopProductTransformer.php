@@ -5,6 +5,7 @@ namespace Meva\Api\V1\Transformers\Commerce;
 use Lunar\Models\Price;
 use Lunar\Models\Product;
 use Lunar\Models\ProductVariant;
+use Meva\Entities\Catalogue\Money;
 use PHPOpenSourceSaver\Fractal\TransformerAbstract;
 
 /**
@@ -101,7 +102,7 @@ class ShopProductTransformer extends TransformerAbstract
         }
 
         return [
-            'minor' => (int) $price->price->value,
+            'minor' => (int) Money::minor($price),
             'amount' => $price->price->decimal(),
             'formatted' => $this->format($price->price->decimal(), $currency),
         ];

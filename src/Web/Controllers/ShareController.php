@@ -90,7 +90,7 @@ class ShareController extends Controller
         $url = $this->storefront().'/proizvod/'.$slug;
 
         $summary = Str::limit($short !== '' ? $short : $description, 180);
-        $amount = $price ? (int) $price->price->value : null;
+        $amount = \Meva\Entities\Catalogue\Money::minor($price);
 
         return view('share.page', [
             'title' => $name.' — Meva Kozmetika',

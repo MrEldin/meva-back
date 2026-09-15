@@ -3,6 +3,7 @@
 namespace Meva\Api\V1\Transformers\Commerce;
 
 use Lunar\Models\Product;
+use Meva\Entities\Catalogue\Money;
 use PHPOpenSourceSaver\Fractal\TransformerAbstract;
 
 class ProductTransformer extends TransformerAbstract
@@ -47,7 +48,9 @@ class ProductTransformer extends TransformerAbstract
             ->first(fn ($p): bool => $p->currency?->code === 'RSD')
             ?? $product->variants->first()?->prices->first();
 
-        return $price === null ? null : round(((int) $price->price->value) / 100, 2);
+        $minor = Money::minor($price);
+
+        return $minor === null ? null : round($minor / 100, 2);
     }
 
     /**
