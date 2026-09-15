@@ -27,10 +27,27 @@ class ProductTransformer extends TransformerAbstract
             'product_type_id' => (int) $product->product_type_id,
             'brand' => $product->brand?->name,
             'name' => $this->attribute($product, 'name'),
+            'slug' => $this->attribute($product, 'slug'),
             'description' => $this->attribute($product, 'description'),
+            'short_description' => $this->attribute($product, 'short_description'),
+            'price' => $this->price($product),
+            'image' => $product->getFirstMediaUrl('images') ?: null,
+            'sku' => $product->variants->first()?->sku,
             'created_at' => $product->created_at?->toAtomString(),
             'updated_at' => $product->updated_at?->toAtomString(),
         ];
+    }
+
+    /**
+     * The product's price in dinars, as the editor types it.
+     */
+    protected function price(Product $product): ?float
+    {
+        $price = $product->variants->first()?->prices
+            ->first(fn ($p): bool => $p->currency?->code === 'RSD')
+            ?? $product->variants->first()?->prices->first();
+
+        return $price === null ? null : round(((int) $price->price->value) / 100, 2);
     }
 
     /**
