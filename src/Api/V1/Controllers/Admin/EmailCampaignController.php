@@ -242,8 +242,9 @@ class EmailCampaignController extends Controller
             'recipients' => count($recipients),
         ]);
 
-        // Chunked so one failure costs a hundred messages, not all of them.
-        foreach (array_chunk($recipients, 100) as $chunk) {
+        // Fifty at a time: small enough that a paced batch finishes well
+        // inside the job's timeout, large enough not to flood the queue.
+        foreach (array_chunk($recipients, 50) as $chunk) {
             dispatch(new SendCampaign($campaign->id, $chunk));
         }
 

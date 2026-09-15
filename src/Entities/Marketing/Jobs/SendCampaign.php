@@ -26,9 +26,19 @@ class SendCampaign implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 3;
+    /**
+     * One attempt only: a batch that is retried would send a second copy to
+     * everyone it already reached before it failed, and a duplicate is worse
+     * than a gap we can see in the log. Individual messages get their own
+     * retry inside handle().
+     */
+    public int $tries = 1;
 
-    public int $backoff = 30;
+    /**
+     * Long enough for a paced batch. The worker's own default is sixty
+     * seconds, which would kill a batch halfway through.
+     */
+    public int $timeout = 900;
 
     /**
      * @param  array<int, array{email: string, name: string|null}>  $recipients
@@ -47,11 +57,20 @@ class SendCampaign implements ShouldQueue
             return;
         }
 
-        foreach ($this->recipients as $recipient) {
+        // Resend meters sends per second and answers 429 over the limit. A
+        // pause between messages keeps a four thousand address campaign under
+        // it instead of losing the tail of the list to rate limiting.
+        $gap = (int) round(1_000_000 / max(1, (int) config('meva.mail_rate', 2)));
+
+        foreach ($this->recipients as $index => $recipient) {
             $email = (string) ($recipient['email'] ?? '');
 
             if ($email === '') {
                 continue;
+            }
+
+            if ($index > 0) {
+                usleep($gap);
             }
 
             $unsubscribe = Unsubscribe::url($email);
@@ -62,22 +81,45 @@ class SendCampaign implements ShouldQueue
                 'odjava' => $unsubscribe,
             ];
 
+            $message = fn (): CampaignMail => new CampaignMail(
+                subjectLine: ($this->test ? '[PROBA] ' : '').(string) $campaign->subject,
+                htmlBody: $renderer->render($campaign, $tokens),
+                plain: (new EmailRenderer)->renderText($campaign, $tokens),
+                unsubscribeUrl: $unsubscribe,
+                campaignKey: 'meva-campaign-'.$campaign->id,
+            );
+
             try {
-                Mail::to($email)->send(new CampaignMail(
-                    subjectLine: ($this->test ? '[PROBA] ' : '').(string) $campaign->subject,
-                    htmlBody: $renderer->render($campaign, $tokens),
-                    plain: (new EmailRenderer)->renderText($campaign, $tokens),
-                    unsubscribeUrl: $unsubscribe,
-                    campaignKey: 'meva-campaign-'.$campaign->id,
-                ));
+                Mail::to($email)->send($message());
             } catch (\Throwable $e) {
-                Log::warning('Campaign send failed', [
-                    'campaign' => $campaign->id,
-                    'email' => $email,
-                    'error' => $e->getMessage(),
-                ]);
+                // One retry after a breath: most failures here are the provider
+                // asking us to slow down, and a lost message is a lost sale.
+                try {
+                    usleep($gap * 4);
+                    Mail::to($email)->send($message());
+                } catch (\Throwable $again) {
+                    Log::warning('Campaign send failed', [
+                        'campaign' => $campaign->id,
+                        'email' => $email,
+                        'error' => $again->getMessage(),
+                    ]);
+                }
             }
         }
+    }
+
+    /**
+     * A batch that fell over entirely -- the provider is down, or the queue
+     * lost its connection. Recorded with the addresses so it can be re-sent.
+     */
+    public function failed(\Throwable $e): void
+    {
+        Log::error('Campaign batch failed', [
+            'campaign' => $this->campaignId,
+            'recipients' => count($this->recipients),
+            'first' => $this->recipients[0]['email'] ?? null,
+            'error' => $e->getMessage(),
+        ]);
     }
 
     /**

@@ -16,6 +16,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Campaign send rate
+    |--------------------------------------------------------------------------
+    |
+    | Messages per second. Resend meters sends and answers 429 above its limit,
+    | so campaigns are paced rather than fired all at once. Two a second is the
+    | free tier; raise it to match the plan in use.
+    |
+    */
+
+    'mail_rate' => (int) env('MEVA_MAIL_RATE', 2),
+
+    /*
+    |--------------------------------------------------------------------------
     | Catalogue
     |--------------------------------------------------------------------------
     |
