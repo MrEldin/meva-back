@@ -165,7 +165,6 @@ class EmailRenderer
     .m-stack{display:block!important;width:100%!important;max-width:100%!important}
     .m-center{text-align:center!important}
     .m-h1{font-size:28px!important;line-height:34px!important}
-    .m-btn{width:100%!important}
   }
   @media (prefers-color-scheme:dark){
     .m-shell{background:{$cream}!important}
