@@ -22,11 +22,11 @@ class OrderTransformer extends TransformerAbstract
             'placed_at' => $order->placed_at?->toIso8601String(),
             'created_at' => $order->created_at?->toIso8601String(),
             'currency' => $order->currency_code,
-            'sub_total' => (int) $order->sub_total,
-            'shipping_total' => (int) $order->shipping_total,
-            'discount_total' => (int) $order->discount_total,
-            'total' => (int) $order->total,
-            'total_formatted' => self::money((int) $order->total),
+            'sub_total' => self::minor($order->sub_total),
+            'shipping_total' => self::minor($order->shipping_total),
+            'discount_total' => self::minor($order->discount_total),
+            'total' => self::minor($order->total),
+            'total_formatted' => self::money(self::minor($order->total)),
             'items' => (int) $order->lines->where('type', 'physical')->sum('quantity'),
             'notes' => $order->notes,
         ];
@@ -52,9 +52,9 @@ class OrderTransformer extends TransformerAbstract
                     'description' => $line->description,
                     'identifier' => $line->identifier,
                     'quantity' => (int) $line->quantity,
-                    'unit_price' => (int) $line->unit_price,
-                    'total' => (int) $line->total,
-                    'total_formatted' => self::money((int) $line->total),
+                    'unit_price' => self::minor($line->unit_price),
+                    'total' => self::minor($line->total),
+                    'total_formatted' => self::money(self::minor($line->total)),
                 ])
                 ->values()
                 ->all()
@@ -74,6 +74,15 @@ class OrderTransformer extends TransformerAbstract
             'postcode' => $address?->postcode,
             'user_id' => $order->user_id,
         ]);
+    }
+
+    /**
+     * Lunar hands money back as a Price object on some columns and a plain
+     * integer on others; both mean minor units.
+     */
+    public static function minor(mixed $value): int
+    {
+        return (int) ($value instanceof \Lunar\DataTypes\Price ? $value->value : $value);
     }
 
     /**
