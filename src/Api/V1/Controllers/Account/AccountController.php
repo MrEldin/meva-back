@@ -62,9 +62,11 @@ class AccountController extends Controller
             ->latest('placed_at')
             ->paginate(min((int) $request->input('per_page', 20), 50));
 
+        $transformer = new OrderTransformer;
+        $transformer->setDefaultIncludes(['lines']);
+
         return $this->response
-            ->paginator($orders, new OrderTransformer)
-            ->parseIncludes(['lines'])
+            ->paginator($orders, $transformer)
             ->setStatusCode(Response::HTTP_OK);
     }
 
@@ -92,9 +94,11 @@ class AccountController extends Controller
             ], Response::HTTP_NOT_FOUND);
         }
 
+        $transformer = new OrderTransformer;
+        $transformer->setDefaultIncludes(['lines', 'customer']);
+
         return $this->response
-            ->item($order, new OrderTransformer)
-            ->parseIncludes(['lines', 'customer'])
+            ->item($order, $transformer)
             ->setStatusCode(Response::HTTP_OK);
     }
 }

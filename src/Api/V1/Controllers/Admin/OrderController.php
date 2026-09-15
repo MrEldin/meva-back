@@ -40,8 +40,7 @@ class OrderController extends Controller
         $order = Order::with(['lines', 'shippingAddress', 'billingAddress'])->findOrFail($id);
 
         return $this->response
-            ->item($order, new OrderTransformer)
-            ->parseIncludes(['lines', 'customer'])
+            ->item($order, $this->detailed())
             ->setStatusCode(Response::HTTP_OK);
     }
 
@@ -65,8 +64,7 @@ class OrderController extends Controller
         $order->save();
 
         return $this->response
-            ->item($order->refresh(), new OrderTransformer)
-            ->parseIncludes(['lines', 'customer'])
+            ->item($order->refresh(), $this->detailed())
             ->setStatusCode(Response::HTTP_OK);
     }
 
@@ -127,6 +125,18 @@ class OrderController extends Controller
         }, 'meva-porudzbine-'.now()->format('Y-m-d').'.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
+    }
+
+    /**
+     * A transformer that always returns the lines and the customer, for the
+     * views where detail is the whole point.
+     */
+    protected function detailed(): OrderTransformer
+    {
+        $transformer = new OrderTransformer;
+        $transformer->setDefaultIncludes(['lines', 'customer']);
+
+        return $transformer;
     }
 
     /**
