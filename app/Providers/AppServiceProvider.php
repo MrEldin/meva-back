@@ -6,7 +6,9 @@ use App\Console\Commands\ApiRoutesCommand;
 use Dingo\Api\Transformer\Adapter\Fractal;
 use Illuminate\Console\Application as Artisan;
 use Illuminate\Foundation\Console\RouteListCommand;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Meva\Web\ImageSize;
 use Meva\Serializers\CustomSerializer;
 use PHPOpenSourceSaver\Fractal\Manager;
 
@@ -33,6 +35,25 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->registerConsoleCommands();
+        $this->measureShareImages();
+    }
+
+    /**
+     * Every share page declares the true shape of its picture.
+     *
+     * Done here rather than at each call site so a new share page cannot forget
+     * it: a card that claims the wrong dimensions is drawn as the small
+     * one-line preview instead of the large one.
+     */
+    protected function measureShareImages(): void
+    {
+        View::composer('share.page', function ($view): void {
+            $image = $view->getData()['image'] ?? null;
+            $size = ImageSize::of($image);
+
+            $view->with('imageSize', $size);
+            $view->with('imageType', str_ends_with(strtolower((string) $image), '.png') ? 'image/png' : 'image/jpeg');
+        });
     }
 
     /**

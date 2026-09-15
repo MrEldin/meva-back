@@ -17,8 +17,14 @@
 <meta property="og:description" content="{{ $description }}">
 <meta property="og:url" content="{{ $url }}">
 <meta property="og:image" content="{{ $image }}">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="1200">
+@if ($imageSize)
+{{-- The real shape of the file. Messengers lay the card out from these before
+     the picture arrives, and a wrong number collapses it to the small preview. --}}
+<meta property="og:image:width" content="{{ $imageSize[0] }}">
+<meta property="og:image:height" content="{{ $imageSize[1] }}">
+<meta property="og:image:type" content="{{ $imageType }}">
+@endif
+<meta property="og:image:secure_url" content="{{ $image }}">
 <meta property="og:image:alt" content="{{ $body['name'] ?? 'Meva Kozmetika' }}">
 @isset($price)
 <meta property="product:price:amount" content="{{ number_format($price / 100, 2, '.', '') }}">

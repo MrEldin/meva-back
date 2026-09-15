@@ -16,6 +16,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Where the storefront's files live
+    |--------------------------------------------------------------------------
+    |
+    | The built Vue app is uploaded to its own directory. Knowing the path lets
+    | the share pages measure og-image.jpg from disk instead of fetching it back
+    | through nginx.
+    |
+    */
+
+    'storefront_root' => env('STOREFRONT_ROOT', '/var/www/meva-client/dist'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Campaign send rate
     |--------------------------------------------------------------------------
     |
