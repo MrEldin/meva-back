@@ -9,6 +9,7 @@ use Lunar\Models\Product;
 use Meva\Api\V1\Controllers\Controller;
 use Meva\Api\V1\Transformers\Commerce\ShopCollectionTransformer;
 use Meva\Api\V1\Transformers\Commerce\ShopProductTransformer;
+use Meva\Entities\Catalogue\CatalogueCache;
 
 /**
  * The public catalogue. No authentication: this is what the storefront reads.
@@ -19,6 +20,16 @@ class CatalogController extends Controller
      * Browse published products.
      */
     public function index(Request $request)
+    {
+        $key = 'products:'.md5(json_encode($request->only(['kategorija', 'tip', 'trazi', 'per_page', 'page'])));
+
+        return $this->cached($key, fn () => $this->browse($request));
+    }
+
+    /**
+     * The query behind the listing.
+     */
+    protected function browse(Request $request)
     {
         $products = Product::query()
             ->where('status', 'published')
@@ -51,11 +62,21 @@ class CatalogController extends Controller
      */
     public function show(string $slug)
     {
+        return $this->cached('product:'.$slug.':'.request()->input('include', ''), fn () => $this->product($slug));
+    }
+
+    /**
+     * The query behind a single product.
+     */
+    protected function product(string $slug)
+    {
+        // Matched in the database rather than by loading the whole catalogue
+        // and searching it in PHP.
         $product = Product::query()
             ->where('status', 'published')
+            ->whereRaw("attribute_data->'slug'->>'value' = ?", [$slug])
             ->with(['variants.prices.currency', 'collections', 'productType', 'media'])
-            ->get()
-            ->first(fn (Product $p): bool => (string) $p->attribute_data?->get('slug') === $slug);
+            ->first();
 
         abort_if($product === null, Response::HTTP_NOT_FOUND, 'Proizvod nije pronađen.');
 
@@ -69,6 +90,14 @@ class CatalogController extends Controller
      */
     public function collections()
     {
+        return $this->cached('collections', fn () => $this->categories());
+    }
+
+    /**
+     * The query behind the category list.
+     */
+    protected function categories()
+    {
         $collections = LunarCollection::query()
             ->withCount(['products as products_count' => fn ($q) => $q->where('status', 'published')])
             ->get()
@@ -79,5 +108,26 @@ class CatalogController extends Controller
         return $this->response
             ->collection($collections, new ShopCollectionTransformer)
             ->setStatusCode(Response::HTTP_OK);
+    }
+
+    /**
+     * Answer from the catalogue cache, and let the browser hold it briefly too.
+     *
+     * Dingo responses are built from Eloquent models, which do not survive a
+     * round trip through the cache, so what is stored is the rendered body.
+     */
+    protected function cached(string $key, callable $build)
+    {
+        $payload = CatalogueCache::remember($key, function () use ($build): string {
+            $response = $build();
+
+            return $response instanceof \Dingo\Api\Http\Response
+                ? $response->morph()->getContent()
+                : json_encode($response);
+        });
+
+        return response($payload, Response::HTTP_OK)
+            ->header('Content-Type', 'application/json')
+            ->header('Cache-Control', 'public, max-age=60, stale-while-revalidate=600');
     }
 }

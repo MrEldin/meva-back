@@ -14,6 +14,22 @@ return [
 
     'storefront_url' => env('STOREFRONT_URL', 'https://meva.life'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Catalogue
+    |--------------------------------------------------------------------------
+    |
+    | The storefront asks for the catalogue on every page; it is held in the
+    | cache until someone edits a product. Turn the cache off while working on
+    | the transformers, so a change shows without clearing anything.
+    |
+    */
+
+    'catalogue' => [
+        'cache' => env('MEVA_CATALOGUE_CACHE', true),
+        'ttl' => env('MEVA_CATALOGUE_TTL', 3600),
+    ],
+
 
     /*
     |--------------------------------------------------------------------------
