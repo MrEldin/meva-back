@@ -130,6 +130,30 @@ class ProductController extends Controller
     }
 
     /**
+     * Upload the product's photograph.
+     *
+     * The first image is the one the storefront, the share card and the advert
+     * feed all use, so a newly uploaded one replaces whatever was there.
+     */
+    public function uploadImage(Request $request, int $id)
+    {
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
+        ]);
+
+        $product = Product::query()->findOrFail($id);
+        $product->clearMediaCollection('images');
+
+        $product->addMedia($request->file('image'))
+            ->withCustomProperties(['primary' => true])
+            ->toMediaCollection('images');
+
+        return $this->response
+            ->item($product->refresh()->load(['variants.prices', 'media']), new ProductTransformer)
+            ->setStatusCode(Response::HTTP_OK);
+    }
+
+    /**
      * Delete a product.
      */
     public function destroy(int $id)

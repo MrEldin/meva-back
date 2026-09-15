@@ -3,9 +3,11 @@
 namespace Meva\Entities\Product\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Lunar\FieldTypes\Text;
 use Lunar\Models\Currency;
 use Lunar\Models\Product;
+use Lunar\Models\ProductType;
 
 /**
  * Creates a Lunar product together with its variants and prices.
@@ -25,16 +27,31 @@ class ProductCreateService
     {
         return DB::transaction(function () use ($data): Product {
             $product = Product::create([
-                'product_type_id' => $data['product_type_id'],
+                'product_type_id' => $data['product_type_id'] ?? ProductType::query()->value('id'),
                 'brand_id' => $data['brand_id'] ?? null,
                 'status' => $data['status'] ?? 'draft',
                 'attribute_data' => collect(array_filter([
                     'name' => new Text($data['name']),
+                    // The address the product will live at; derived from the
+                    // name when the editor does not choose one.
+                    'slug' => new Text($data['slug'] ?? Str::slug($data['name'])),
                     'description' => isset($data['description']) ? new Text($data['description']) : null,
+                    'short_description' => isset($data['short_description']) ? new Text($data['short_description']) : null,
                 ])),
             ]);
 
-            foreach ($data['variants'] ?? [] as $variantData) {
+            $variants = $data['variants'] ?? [];
+
+            // A single-variant product is the ordinary case here, so a plain
+            // price and SKU are enough to make one.
+            if ($variants === [] && isset($data['price'])) {
+                $variants = [[
+                    'sku' => $data['sku'] ?? 'MEVA-'.Str::upper(Str::random(6)),
+                    'price' => (int) round(((float) $data['price']) * 100),
+                ]];
+            }
+
+            foreach ($variants as $variantData) {
                 $this->addVariant($product, $variantData);
             }
 

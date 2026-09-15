@@ -21,9 +21,14 @@ class ProductCreateRequest extends ApiFormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9-]+$/'],
             'description' => ['nullable', 'string'],
+            'short_description' => ['nullable', 'string'],
             'status' => ['nullable', 'string', 'in:published,draft'],
-            'product_type_id' => ['required', 'integer', 'exists:lunar_product_types,id'],
+            // Dinars, as the shop quotes them.
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'sku' => ['nullable', 'string', 'max:255'],
+            'product_type_id' => ['nullable', 'integer', 'exists:lunar_product_types,id'],
             'brand_id' => ['nullable', 'integer', 'exists:lunar_brands,id'],
 
             'variants' => ['nullable', 'array'],
