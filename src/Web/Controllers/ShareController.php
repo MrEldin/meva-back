@@ -92,12 +92,14 @@ class ShareController extends Controller
         $short = trim(Str::of((string) $product->attribute_data?->get('short_description'))->stripTags()->squish());
         $variant = $product->variants->first();
         $price = $variant?->prices->firstWhere('currency.code', 'RSD') ?? $variant?->prices->first();
-        // The original photographs are 4440px square and over two megabytes;
-        // a messenger gives up long before one arrives. Lunar already keeps an
-        // 800px version beside it, which is thirty kilobytes and plenty for a
-        // card that is never shown wider than a phone.
-        $image = $product->getFirstMediaUrl('images', 'large')
-            ?: ($product->getFirstMediaUrl('images') ?: $this->storefront().'/og-image.jpg');
+        // The original photographs are 4440px square and over two megabytes; a
+        // messenger gives up long before one arrives. The "share" conversion is
+        // a JPEG whatever the original was, which matters because Lunar's other
+        // sizes keep the original format and some of this catalogue is PNG at
+        // over half a megabyte.
+        $image = $product->getFirstMediaUrl('images', 'share')
+            ?: ($product->getFirstMediaUrl('images', 'large')
+                ?: ($product->getFirstMediaUrl('images') ?: $this->storefront().'/og-image.jpg'));
         $url = $this->storefront().'/proizvod/'.$slug;
 
         $summary = Str::limit($short !== '' ? $short : $description, 180);
