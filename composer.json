@@ -20,6 +20,7 @@
         "league/flysystem-aws-s3-v3": "^3.29",
         "lunarphp/core": "^1.5",
         "prettus/l5-repository": "^4.0",
+        "resend/resend-php": "^1.0",
         "spatie/laravel-activitylog": "^4.12",
         "spatie/laravel-permission": "^6.12",
         "tymon/jwt-auth": "^2.3"
