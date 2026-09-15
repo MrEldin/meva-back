@@ -5,6 +5,7 @@ namespace Meva\Api\V1\Controllers\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Meva\Api\V1\Controllers\Controller;
 
@@ -25,36 +26,48 @@ class AnalyticsController extends Controller
     public function index(Request $request)
     {
         [$from, $to] = $this->period($request);
-        $length = $from->diffInDays($to) + 1;
+
+        // Five thousand orders aggregated a dozen ways; the answer is the same
+        // for everyone looking at the same window, so it is held briefly.
+        $key = 'analytics:'.$from->toDateString().':'.$to->toDateString();
+
+        return $this->response->array(['data' => Cache::remember($key, 300, fn (): array => $this->report($from, $to))])
+            ->setStatusCode(Response::HTTP_OK);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function report(Carbon $from, Carbon $to): array
+    {
+        $length = (int) abs($from->diffInDays($to)) + 1;
         $previousFrom = (clone $from)->subDays($length);
         $previousTo = (clone $from)->subDay()->endOfDay();
 
         $totals = $this->totals($from, $to);
         $previous = $this->totals($previousFrom, $previousTo);
 
-        return $this->response->array([
-            'data' => [
-                'period' => [
-                    'from' => $from->toDateString(),
-                    'to' => $to->toDateString(),
-                    'days' => $length,
-                    'previous_from' => $previousFrom->toDateString(),
-                    'previous_to' => $previousTo->toDateString(),
-                ],
-                'totals' => $totals,
-                'previous' => $previous,
-                'change' => $this->change($totals, $previous),
-                'series' => $this->series($from, $to, $length),
-                'statuses' => $this->statuses(),
-                'products' => $this->topProducts($from, $to),
-                'categories' => $this->categories($from, $to),
-                'channels' => $this->groupedBy('utm_source', $from, $to),
-                'devices' => $this->groupedBy('device_type', $from, $to),
-                'cities' => $this->groupedBy('city', $from, $to, 8),
-                'customers' => $this->customers($from, $to),
-                'busiest' => $this->busiest($from, $to),
+        return [
+            'period' => [
+                'from' => $from->toDateString(),
+                'to' => $to->toDateString(),
+                'days' => $length,
+                'previous_from' => $previousFrom->toDateString(),
+                'previous_to' => $previousTo->toDateString(),
             ],
-        ])->setStatusCode(Response::HTTP_OK);
+            'totals' => $totals,
+            'previous' => $previous,
+            'change' => $this->change($totals, $previous),
+            'series' => $this->series($from, $to, $length),
+            'statuses' => $this->statuses(),
+            'products' => $this->topProducts($from, $to),
+            'categories' => $this->categories($from, $to),
+            'channels' => $this->groupedBy('utm_source', $from, $to),
+            'devices' => $this->groupedBy('device_type', $from, $to),
+            'cities' => $this->groupedBy('city', $from, $to, 8),
+            'customers' => $this->customers($from, $to),
+            'busiest' => $this->busiest($from, $to),
+        ];
     }
 
     /**

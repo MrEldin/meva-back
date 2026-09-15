@@ -104,7 +104,16 @@ class MarketingController extends Controller
      */
     public function insights(Request $request)
     {
-        return $this->response->array(['data' => $this->compute()])->setStatusCode(Response::HTTP_OK);
+        $data = $this->compute();
+
+        // The panel shows sixty of each list and offers the rest as a
+        // spreadsheet, so there is no reason to send four hundred rows.
+        foreach (['due', 'winback', 'loyal'] as $list) {
+            $data[$list.'_total'] = count($data[$list]);
+            $data[$list] = array_slice($data[$list], 0, 60);
+        }
+
+        return $this->response->array(['data' => $data])->setStatusCode(Response::HTTP_OK);
     }
 
     /**
