@@ -42,8 +42,10 @@ class OrderTransformer extends TransformerAbstract
         'returned' => 'Vraćeno',
         'cancelled' => 'Otkazano',
         // What the old shop called them, so the history reads in one language.
-        'processing' => 'Završeno (arhiva)',
-        'completed' => 'Završeno (arhiva)',
+        // The list already marks an archived order beside its reference, so the
+        // status itself does not repeat it.
+        'processing' => 'Završeno',
+        'completed' => 'Završeno',
         'refunded' => 'Refundirano',
         'failed' => 'Neuspelo',
         'on-hold' => 'Na čekanju',
