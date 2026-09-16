@@ -207,11 +207,11 @@ class ShareController extends Controller
             ],
             'dostava' => [
                 'title' => 'Dostava — Meva Kozmetika',
-                'description' => 'Besplatna dostava u celoj Srbiji, isporuka za jedan do tri radna dana, plaćanje pouzećem kuriru.',
-                'social' => 'Besplatno u celoj Srbiji, 1–3 radna dana, plaćate kuriru.',
+                'description' => 'Besplatna dostava u celoj Srbiji, bez minimalnog iznosa; plaćanje pouzećem kuriru. Šaljemo i u region.',
+                'social' => 'Besplatno u celoj Srbiji, bez minimalnog iznosa. Plaćate kuriru.',
                 'path' => '/dostava',
                 'heading' => 'Dostava',
-                'body' => 'Dostava je besplatna u celoj Srbiji, bez minimalnog iznosa porudžbine. Paket stiže za jedan do tri radna dana, a plaćate kuriru kad stigne.',
+                'body' => 'Dostava je besplatna u celoj Srbiji, bez minimalnog iznosa porudžbine. Plaćate kuriru kad paket stigne. Šaljemo i u Crnu Goru, Bosnu i Hercegovinu i EU.',
             ],
             'reklamacije' => [
                 'title' => 'Povrat i reklamacije — Meva Kozmetika',
