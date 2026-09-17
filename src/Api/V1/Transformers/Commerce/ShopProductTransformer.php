@@ -33,6 +33,7 @@ class ShopProductTransformer extends TransformerAbstract
             'price' => $this->price($variant, 'RSD'),
             'price_eur' => $this->price($variant, 'EUR'),
             'image' => $this->primaryImage($product),
+            'has_cutout' => $this->cutout($product) !== null,
             'categories' => $product->collections->map(fn ($c): array => [
                 'name' => (string) $c->attribute_data?->get('name'),
                 'slug' => (string) $c->attribute_data?->get('slug'),
@@ -58,10 +59,12 @@ class ShopProductTransformer extends TransformerAbstract
         return $this->primitive(
             $product->getMedia('images')
                 ->map(fn ($media): array => [
-                    'url' => $media->getFullUrl(),
+                    'url' => $this->url($media, 'cutout'),
+                    'full' => $media->getFullUrl(),
+                    'cutout' => (bool) $media->getCustomProperty('cutout'),
                     'primary' => (bool) $media->getCustomProperty('primary'),
                 ])
-                ->sortByDesc('primary')
+                ->sortByDesc('cutout')
                 ->values()
                 ->all()
         );
@@ -119,14 +122,44 @@ class ShopProductTransformer extends TransformerAbstract
     }
 
     /**
-     * The main photograph, falling back to whatever exists.
+     * The picture a listing leads with.
+     *
+     * The cutout wins when there is one: transparent, it can stand on a tinted
+     * circle or in open white instead of sitting in a photographed box. Six
+     * products have none, and they fall back to the studio photograph.
      */
     protected function primaryImage(Product $product): ?string
     {
+        $cutout = $this->cutout($product);
+
+        if ($cutout !== null) {
+            return $this->url($cutout, 'cutout-sm');
+        }
+
         $media = $product->getMedia('images');
 
         $primary = $media->first(fn ($item): bool => (bool) $item->getCustomProperty('primary'));
 
         return ($primary ?? $media->first())?->getFullUrl();
+    }
+
+    /**
+     * The product's cutout, if one has been made for it.
+     */
+    protected function cutout(Product $product): ?\Spatie\MediaLibrary\MediaCollections\Models\Media
+    {
+        return $product->getMedia('images')
+            ->first(fn ($media): bool => (bool) $media->getCustomProperty('cutout'));
+    }
+
+    /**
+     * A conversion's URL, falling back to the original until the queue has
+     * caught up with generating it.
+     */
+    protected function url(\Spatie\MediaLibrary\MediaCollections\Models\Media $media, string $conversion): string
+    {
+        return $media->hasGeneratedConversion($conversion)
+            ? $media->getFullUrl($conversion)
+            : $media->getFullUrl();
     }
 }
