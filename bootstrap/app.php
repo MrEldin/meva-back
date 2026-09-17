@@ -14,7 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function () {
             // Dingo route files register themselves on the Dingo router, so they
             // only need to be loaded once the application has booted.
-            foreach (['users', 'roles', 'permissions', 'products', 'orders', 'shop', 'account', 'marketing', 'email'] as $routes) {
+            foreach (['users', 'roles', 'permissions', 'products', 'orders', 'shop', 'account', 'marketing', 'email', 'reviews'] as $routes) {
                 require base_path("routes/{$routes}.php");
             }
         },
