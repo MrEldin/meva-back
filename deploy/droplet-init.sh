@@ -329,8 +329,11 @@ php artisan route:clear
 # a deploy.
 php artisan cache:clear
 
+# queue:restart already tells the workers to finish their job and exit, and
+# supervisor starts them again -- so there is nothing to restart by hand.
+# "supervisorctl restart all" waits for a worker to stop and once hung there
+# for twenty-five minutes, taking the php-fpm reload below down with it.
 php artisan queue:restart
-sudo supervisorctl restart all
 sudo systemctl reload php8.4-fpm
 echo "API deployed: $(git rev-parse --short HEAD)"
 DEPLOY
