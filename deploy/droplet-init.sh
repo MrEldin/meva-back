@@ -303,6 +303,60 @@ ln -sf /snap/bin/certbot /usr/bin/certbot
 curl -sSL https://repos.insights.digitalocean.com/install.sh | bash || true
 
 # ── Deploy helper ─────────────────────────────────────────────────────────────
+# ── Meilisearch ───────────────────────────────────────────────────────────────
+# The shop's search box. Bound to localhost, so only this application reaches
+# it; the catalogue is small enough that the index is rebuilt whole rather
+# than reconciled. Capped in memory, because this droplet has a gigabyte.
+if ! command -v meilisearch >/dev/null 2>&1; then
+  curl -sSL https://github.com/meilisearch/meilisearch/releases/latest/download/meilisearch-linux-amd64 \
+    -o /usr/local/bin/meilisearch
+  chmod +x /usr/local/bin/meilisearch
+fi
+
+id -u meilisearch >/dev/null 2>&1 || useradd --system --home /var/lib/meilisearch --shell /usr/sbin/nologin meilisearch
+mkdir -p /var/lib/meilisearch /etc/meilisearch
+chown -R meilisearch:meilisearch /var/lib/meilisearch
+
+if [ ! -f /etc/meilisearch/meilisearch.env ]; then
+  cat > /etc/meilisearch/meilisearch.env <<EOF
+MEILI_MASTER_KEY=$(openssl rand -hex 32)
+MEILI_ENV=production
+MEILI_DB_PATH=/var/lib/meilisearch/data.ms
+MEILI_DUMP_DIR=/var/lib/meilisearch/dumps
+MEILI_HTTP_ADDR=127.0.0.1:7700
+MEILI_NO_ANALYTICS=true
+MEILI_MAX_INDEXING_MEMORY=128Mb
+MEILI_MAX_INDEXING_THREADS=1
+EOF
+  chmod 600 /etc/meilisearch/meilisearch.env
+fi
+
+cat > /etc/systemd/system/meilisearch.service <<'UNIT'
+[Unit]
+Description=Meilisearch
+After=network.target
+
+[Service]
+Type=simple
+User=meilisearch
+Group=meilisearch
+EnvironmentFile=/etc/meilisearch/meilisearch.env
+ExecStart=/usr/local/bin/meilisearch
+Restart=on-failure
+RestartSec=5
+MemoryMax=320M
+MemoryHigh=256M
+WorkingDirectory=/var/lib/meilisearch
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now meilisearch
+echo "Meilisearch key (put it in the API's .env as MEILI_KEY):"
+grep MEILI_MASTER_KEY /etc/meilisearch/meilisearch.env
+
 cat > /usr/local/bin/meva-deploy <<'DEPLOY'
 #!/bin/bash
 # Deploys the Laravel API from git. The Vue build is uploaded from your own
@@ -335,6 +389,10 @@ php artisan cache:clear
 # for twenty-five minutes, taking the php-fpm reload below down with it.
 php artisan queue:restart
 sudo systemctl reload php8.4-fpm
+
+# The reading pages and the transformers that shape a search hit both live in
+# this code, so the index is rebuilt with it. It must never fail a deploy.
+php artisan meva:search-index || echo "search index not rebuilt (is Meilisearch running?)"
 echo "API deployed: $(git rev-parse --short HEAD)"
 DEPLOY
 chmod +x /usr/local/bin/meva-deploy

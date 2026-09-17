@@ -2,6 +2,7 @@
 
 use Meva\Api\V1\Controllers\Shop\CatalogController;
 use Meva\Api\V1\Controllers\Shop\CheckoutController;
+use Meva\Api\V1\Controllers\Shop\SearchController;
 
 $api = app('Dingo\Api\Routing\Router');
 
@@ -21,6 +22,7 @@ $api->version('v1', function ($api) {
         $api->get('products/{slug}', CatalogController::class.'@show')->name('products.show');
         $api->get('collections', CatalogController::class.'@collections')->name('collections');
         $api->get('reviews', CatalogController::class.'@reviews')->name('reviews');
+        $api->get('search', SearchController::class)->name('search');
         $api->post('orders', CheckoutController::class.'@store')->name('orders.store');
     });
 });

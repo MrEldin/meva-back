@@ -8,6 +8,8 @@ use Illuminate\Console\Application as Artisan;
 use Illuminate\Foundation\Console\RouteListCommand;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Meilisearch\Client;
+use Meva\Entities\Search\SearchIndex;
 use Meva\Web\ImageSize;
 use Meva\Serializers\CustomSerializer;
 use PHPOpenSourceSaver\Fractal\Manager;
@@ -19,7 +21,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // One Meilisearch client, built from config, so nothing anywhere else
+        // has to know the host or carry the key.
+        $this->app->singleton(Client::class, fn (): Client => new Client(
+            config('search.host'),
+            config('search.key'),
+        ));
+
+        $this->app->singleton(SearchIndex::class);
     }
 
     /**

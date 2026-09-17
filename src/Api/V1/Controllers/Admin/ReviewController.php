@@ -8,6 +8,7 @@ use Lunar\Models\Product;
 use Meva\Api\V1\Controllers\Controller;
 use Meva\Entities\Catalogue\CatalogueCache;
 use Meva\Entities\Catalogue\Models\Review;
+use Meva\Entities\Search\SearchIndex;
 
 /**
  * The reviews desk.
@@ -48,6 +49,7 @@ class ReviewController extends Controller
         $review = Review::create($this->validated($request) + ['source' => 'admin']);
 
         CatalogueCache::bump();
+        $this->reindex();
 
         return $this->response->array(['data' => $this->present($review->fresh('product'))])
             ->setStatusCode(Response::HTTP_CREATED);
@@ -62,6 +64,7 @@ class ReviewController extends Controller
         $review->update($this->validated($request));
 
         CatalogueCache::bump();
+        $this->reindex();
 
         return $this->response->array(['data' => $this->present($review->fresh('product'))])
             ->setStatusCode(Response::HTTP_OK);
@@ -75,9 +78,29 @@ class ReviewController extends Controller
         Review::findOrFail($id)->delete();
 
         CatalogueCache::bump();
+        $this->reindex();
 
         return $this->response->array(['data' => ['deleted' => true]])
             ->setStatusCode(Response::HTTP_OK);
+    }
+
+    /**
+     * Put the change in front of the search box too.
+     *
+     * The index is a couple of hundred documents, so it is rebuilt whole; if
+     * Meilisearch is down, saving a review must still succeed.
+     */
+    protected function reindex(): void
+    {
+        if (! SearchIndex::available()) {
+            return;
+        }
+
+        try {
+            app(SearchIndex::class)->rebuild();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Could not rebuild the search index: '.$e->getMessage());
+        }
     }
 
     /**
