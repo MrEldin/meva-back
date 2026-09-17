@@ -7,6 +7,7 @@ use Illuminate\Support\Str;
 use Lunar\Models\Collection as LunarCollection;
 use Lunar\Models\Product;
 use Meilisearch\Client;
+use Meilisearch\Contracts\SearchQuery;
 use Meva\Entities\Catalogue\Models\Review;
 
 /**
@@ -89,12 +90,14 @@ class SearchIndex
     {
         $limits = config('search.limits');
 
+        // The client calls toArray() on each of these, so they have to be
+        // SearchQuery objects; an array of arrays fatals, and a fatal here
+        // looks exactly like "Meilisearch found nothing".
         $queries = collect(self::INDEXES)
-            ->map(fn (string $name): array => [
-                'indexUid' => $name,
-                'q' => $term,
-                'limit' => $limits[$name] ?? 5,
-            ])
+            ->map(fn (string $name): SearchQuery => (new SearchQuery)
+                ->setIndexUid($name)
+                ->setQuery($term)
+                ->setLimit($limits[$name] ?? 5))
             ->all();
 
         $results = $this->client->multiSearch($queries);
