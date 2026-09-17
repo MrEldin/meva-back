@@ -9,6 +9,7 @@ use Lunar\Models\Currency;
 use Lunar\Models\Price;
 use Lunar\Models\Product;
 use Meva\Api\V1\Controllers\Controller;
+use Meva\Entities\Catalogue\CatalogueCache;
 use Meva\Api\V1\Requests\Product\ProductCreateRequest;
 use Meva\Api\V1\Requests\Product\ProductUpdateRequest;
 use Meva\Api\V1\Transformers\Commerce\ProductTransformer;
@@ -144,27 +145,111 @@ class ProductController extends Controller
     }
 
     /**
-     * Upload the product's photograph.
+     * Add photographs.
      *
-     * The first image is the one the storefront, the share card and the advert
-     * feed all use, so a newly uploaded one replaces whatever was there.
+     * A product has a gallery, not a picture: the cutout it leads with and
+     * the studio photographs behind it. This used to clear the collection and
+     * keep only the file just sent, which meant nobody could tell whether the
+     * desk took one image or several -- it took one, and destroyed the rest.
+     * It appends now, and the first image is still the one the storefront,
+     * the share card and the advert feed lead with.
      */
     public function uploadImage(Request $request, int $id)
     {
         $request->validate([
-            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
+            'images' => ['required', 'array', 'max:10'],
+            'images.*' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:8192'],
         ]);
 
         $product = Product::query()->findOrFail($id);
-        $product->clearMediaCollection('images');
+        $first = $product->getMedia('images')->isEmpty();
 
-        $product->addMedia($request->file('image'))
-            ->withCustomProperties(['primary' => true])
-            ->toMediaCollection('images');
+        foreach ($request->file('images') as $file) {
+            $product->addMedia($file)
+                ->withCustomProperties(['primary' => $first])
+                ->toMediaCollection('images');
 
-        return $this->response
-            ->item($product->refresh()->load(['variants.prices', 'media']), new ProductTransformer)
-            ->setStatusCode(Response::HTTP_OK);
+            $first = false;
+        }
+
+        CatalogueCache::bump();
+
+        return $this->gallery($product->refresh());
+    }
+
+    /**
+     * Every photograph a product has.
+     */
+    public function images(int $id)
+    {
+        return $this->gallery(Product::query()->findOrFail($id));
+    }
+
+    /**
+     * Remove one photograph.
+     */
+    public function deleteImage(int $id, int $mediaId)
+    {
+        $product = Product::query()->findOrFail($id);
+        $media = $product->getMedia('images')->firstWhere('id', $mediaId);
+
+        abort_if($media === null, Response::HTTP_NOT_FOUND, 'Slika nije pronađena.');
+
+        $wasPrimary = (bool) $media->getCustomProperty('primary');
+        $media->delete();
+
+        // Something has to lead the gallery, so the next one does.
+        if ($wasPrimary) {
+            $next = $product->refresh()->getMedia('images')->first();
+            $next?->setCustomProperty('primary', true)->save();
+        }
+
+        CatalogueCache::bump();
+
+        return $this->gallery($product->refresh());
+    }
+
+    /**
+     * Choose which photograph the product leads with.
+     */
+    public function primaryImage(int $id, int $mediaId)
+    {
+        $product = Product::query()->findOrFail($id);
+        $media = $product->getMedia('images');
+
+        abort_if($media->firstWhere('id', $mediaId) === null, Response::HTTP_NOT_FOUND, 'Slika nije pronađena.');
+
+        foreach ($media as $item) {
+            $item->setCustomProperty('primary', $item->id === $mediaId)->save();
+        }
+
+        CatalogueCache::bump();
+
+        return $this->gallery($product->refresh());
+    }
+
+    /**
+     * Every photograph a product has, in the order it is shown.
+     */
+    protected function gallery(Product $product)
+    {
+        return $this->response->array([
+            'data' => $product->getMedia('images')
+                ->sortByDesc(fn ($media): bool => (bool) $media->getCustomProperty('primary'))
+                ->map(fn ($media): array => [
+                    'id' => (int) $media->id,
+                    'url' => $media->hasGeneratedConversion('medium')
+                        ? $media->getFullUrl('medium')
+                        : $media->getFullUrl(),
+                    'full' => $media->getFullUrl(),
+                    'name' => $media->file_name,
+                    'size' => (int) $media->size,
+                    'primary' => (bool) $media->getCustomProperty('primary'),
+                    'cutout' => (bool) $media->getCustomProperty('cutout'),
+                ])
+                ->values()
+                ->all(),
+        ])->setStatusCode(Response::HTTP_OK);
     }
 
     /**

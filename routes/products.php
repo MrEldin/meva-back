@@ -31,7 +31,10 @@ $api->version('v1', function ($api) {
         'as' => 'admin.products',
     ], function ($api) {
         $api->post('', ProductController::class.'@create')->name('create');
-        $api->post('{id}/image', ProductController::class.'@uploadImage')->name('image');
+        $api->get('{id}/images', ProductController::class.'@images')->name('images');
+        $api->post('{id}/images', ProductController::class.'@uploadImage')->name('images.store');
+        $api->delete('{id}/images/{media}', ProductController::class.'@deleteImage')->name('images.destroy');
+        $api->put('{id}/images/{media}/primary', ProductController::class.'@primaryImage')->name('images.primary');
         $api->put('{id}', ProductController::class.'@update')->name('update');
         $api->delete('{id}', ProductController::class.'@destroy')->name('destroy');
     });
