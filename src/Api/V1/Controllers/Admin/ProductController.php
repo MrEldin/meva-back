@@ -229,6 +229,31 @@ class ProductController extends Controller
     }
 
     /**
+     * A small version of a photograph for the desk, or the original.
+     *
+     * Which conversions a piece of media has depends on when it was uploaded
+     * and whether it is a cutout, and asking for one it does not have throws
+     * rather than returning nothing -- which took the whole gallery down with
+     * a 500 and left the editor looking as though the product had no images
+     * at all. So: ask for the small ones in turn, and fall back to the file
+     * itself, which always exists.
+     */
+    protected function thumbnail($media): string
+    {
+        foreach (['medium', 'small', 'cutout-sm'] as $conversion) {
+            try {
+                if ($media->hasGeneratedConversion($conversion)) {
+                    return $media->getFullUrl($conversion);
+                }
+            } catch (\Throwable) {
+                // This one is not registered for this media; try the next.
+            }
+        }
+
+        return $media->getFullUrl();
+    }
+
+    /**
      * Every photograph a product has, in the order it is shown.
      */
     protected function gallery(Product $product)
@@ -238,9 +263,7 @@ class ProductController extends Controller
                 ->sortByDesc(fn ($media): bool => (bool) $media->getCustomProperty('primary'))
                 ->map(fn ($media): array => [
                     'id' => (int) $media->id,
-                    'url' => $media->hasGeneratedConversion('medium')
-                        ? $media->getFullUrl('medium')
-                        : $media->getFullUrl(),
+                    'url' => $this->thumbnail($media),
                     'full' => $media->getFullUrl(),
                     'name' => $media->file_name,
                     'size' => (int) $media->size,
