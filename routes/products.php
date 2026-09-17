@@ -31,7 +31,7 @@ $api->version('v1', function ($api) {
         'as' => 'admin.products',
     ], function ($api) {
         $api->post('', ProductController::class.'@create')->name('create');
-        $api->post('{id}/slika', ProductController::class.'@uploadImage')->name('image');
+        $api->post('{id}/image', ProductController::class.'@uploadImage')->name('image');
         $api->put('{id}', ProductController::class.'@update')->name('update');
         $api->delete('{id}', ProductController::class.'@destroy')->name('destroy');
     });

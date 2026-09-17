@@ -22,7 +22,7 @@ $api->version('v1', function ($api) {
         'as' => 'admin.reviews',
     ], function ($api) {
         $api->get('', ReviewController::class.'@index')->name('index');
-        $api->get('proizvodi', ReviewController::class.'@products')->name('products');
+        $api->get('products', ReviewController::class.'@products')->name('products');
         $api->post('', ReviewController::class.'@store')->name('store');
         $api->put('{id}', ReviewController::class.'@update')->name('update');
         $api->delete('{id}', ReviewController::class.'@destroy')->name('destroy');

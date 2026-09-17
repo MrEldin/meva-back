@@ -51,7 +51,9 @@ class ShareController extends Controller
      */
     public function catalog(Request $request)
     {
-        $category = $request->query('kategorija');
+        // English now; the Serbian name is still read so links already
+        // shared and indexed keep working.
+        $category = $request->query('category', $request->query('kategorija'));
         $collection = $category
             ? LunarCollection::query()->get()->first(fn ($c): bool => (string) $c->attribute_data?->get('slug') === $category)
             : null;
@@ -67,7 +69,7 @@ class ShareController extends Controller
             'social' => $collection
                 ? "Preparati za {$name}. Besplatna dostava, plaćate kuriru."
                 : "Svih {$count} preparata. Besplatna dostava, plaćate kuriru.",
-            'url' => $this->storefront().'/proizvodi'.($category ? '?kategorija='.$category : ''),
+            'url' => $this->storefront().'/products'.($category ? '?category='.$category : ''),
             'image' => $this->storefront().'/og-image.jpg',
             'type' => 'website',
             'body' => null,
@@ -100,7 +102,7 @@ class ShareController extends Controller
         $image = $product->getFirstMediaUrl('images', 'share')
             ?: ($product->getFirstMediaUrl('images', 'large')
                 ?: ($product->getFirstMediaUrl('images') ?: $this->storefront().'/og-image.jpg'));
-        $url = $this->storefront().'/proizvod/'.$slug;
+        $url = $this->storefront().'/product/'.$slug;
 
         $summary = Str::limit($short !== '' ? $short : $description, 180);
         $amount = \Meva\Entities\Catalogue\Money::minor($price);
@@ -135,7 +137,7 @@ class ShareController extends Controller
             ->where('status', 'published')
             ->get()
             ->map(fn ($p): array => [
-                'loc' => $this->storefront().'/proizvod/'.(string) $p->attribute_data?->get('slug'),
+                'loc' => $this->storefront().'/product/'.(string) $p->attribute_data?->get('slug'),
                 'lastmod' => $p->updated_at?->toAtomString(),
                 'priority' => '0.8',
             ]);
@@ -143,14 +145,14 @@ class ShareController extends Controller
         $collections = LunarCollection::query()
             ->get()
             ->map(fn ($c): array => [
-                'loc' => $this->storefront().'/proizvodi?kategorija='.(string) $c->attribute_data?->get('slug'),
+                'loc' => $this->storefront().'/products?category='.(string) $c->attribute_data?->get('slug'),
                 'lastmod' => $c->updated_at?->toAtomString(),
                 'priority' => '0.6',
             ]);
 
         $pages = collect([
             ['loc' => $this->storefront().'/', 'lastmod' => now()->toAtomString(), 'priority' => '1.0'],
-            ['loc' => $this->storefront().'/proizvodi', 'lastmod' => now()->toAtomString(), 'priority' => '0.9'],
+            ['loc' => $this->storefront().'/products', 'lastmod' => now()->toAtomString(), 'priority' => '0.9'],
         ]);
 
         return response()
@@ -168,9 +170,9 @@ class ShareController extends Controller
             'User-agent: *',
             'Allow: /',
             'Disallow: /admin',
-            'Disallow: /korpa',
-            'Disallow: /porucivanje',
-            'Disallow: /nalog',
+            'Disallow: /cart',
+            'Disallow: /checkout',
+            'Disallow: /account',
             '',
             'Sitemap: '.$this->storefront().'/sitemap.xml',
         ];
@@ -189,35 +191,35 @@ class ShareController extends Controller
     public function page(string $key)
     {
         $pages = [
-            'prica' => [
+            'story' => [
                 'title' => 'Naša priča — Meva Kozmetika',
                 'description' => 'Kako nastaje Meva: ručno rađeni preparati iz Novog Pazara od 2010, sastav koji se čita i šta rade na koži glave.',
                 'social' => 'Ručno rađeno u Novom Pazaru od 2010. Sastav koji možete pročitati.',
-                'path' => '/prica',
+                'path' => '/story',
                 'heading' => 'Naša priča',
                 'body' => 'Meva nastaje u Novom Pazaru od 2010. Kuvamo u malim serijama, rukom, i svaka tegla nosi datum kad je napravljena. Sastav je ispisan punim imenom, bez sulfata i bez parabena, a preparati su ispitani u Institutu za javno zdravlje Vojvodine i u Superlabu.',
             ],
-            'cesta-pitanja' => [
+            'faq' => [
                 'title' => 'Česta pitanja — Meva Kozmetika',
                 'description' => 'Odgovori na pitanja o preparatima Meva Kozmetike, poručivanju, dostavi i upotrebi.',
                 'social' => 'Koliko traje pakovanje, kada se vide rezultati, kako se poručuje.',
-                'path' => '/cesta-pitanja',
+                'path' => '/faq',
                 'heading' => 'Česta pitanja',
                 'body' => 'Koliko traje jedno pakovanje, kada se vide prvi rezultati, može li uz terapiju koju je propisao lekar, i kako se poručuje bez otvaranja naloga.',
             ],
-            'dostava' => [
+            'delivery' => [
                 'title' => 'Dostava — Meva Kozmetika',
                 'description' => 'Besplatna dostava u celoj Srbiji, bez minimalnog iznosa; plaćanje pouzećem kuriru. Šaljemo i u region.',
                 'social' => 'Besplatno u celoj Srbiji, bez minimalnog iznosa. Plaćate kuriru.',
-                'path' => '/dostava',
+                'path' => '/delivery',
                 'heading' => 'Dostava',
                 'body' => 'Dostava je besplatna u celoj Srbiji, bez minimalnog iznosa porudžbine. Plaćate kuriru kad paket stigne. Šaljemo i u Crnu Goru, Bosnu i Hercegovinu i EU.',
             ],
-            'reklamacije' => [
+            'returns' => [
                 'title' => 'Povrat i reklamacije — Meva Kozmetika',
                 'description' => 'Rok od 14 dana za odustajanje od kupovine, postupak reklamacije i vraćanje novca.',
                 'social' => '14 dana za odustajanje. Ako nešto nije u redu, šaljemo zamenu o našem trošku.',
-                'path' => '/reklamacije',
+                'path' => '/returns',
                 'heading' => 'Povrat i reklamacije',
                 'body' => 'Imate 14 dana da odustanete od kupovine, bez objašnjenja. Ako je proizvod stigao oštećen ili pogrešan, šaljemo novi o našem trošku, a novac vraćamo u roku od 14 dana od prijema robe.',
             ],

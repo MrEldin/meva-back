@@ -23,9 +23,29 @@ class CatalogController extends Controller
      */
     public function index(Request $request)
     {
-        $key = 'products:'.md5(json_encode($request->only(['kategorija', 'tip', 'trazi', 'per_page', 'page'])));
+        $key = 'products:'.md5(json_encode($this->filters($request)));
 
         return $this->cached($key, fn () => $this->browse($request));
+    }
+
+    /**
+     * The filters a listing request carries.
+     *
+     * The storefront asks in English. Links shared before it did -- and the
+     * ones search engines have already indexed -- carry the Serbian names, so
+     * those are still read; they are not written anywhere any more.
+     *
+     * @return array{category: ?string, type: ?string, q: ?string, per_page: int, page: int}
+     */
+    protected function filters(Request $request): array
+    {
+        return [
+            'category' => $request->input('category', $request->input('kategorija')),
+            'type' => $request->input('type', $request->input('tip')),
+            'q' => $request->input('q', $request->input('trazi')),
+            'per_page' => $request->integer('per_page', 24),
+            'page' => $request->integer('page', 1),
+        ];
     }
 
     /**
@@ -33,26 +53,27 @@ class CatalogController extends Controller
      */
     protected function browse(Request $request)
     {
+        $filters = $this->filters($request);
+
         $products = Product::query()
             ->where('status', 'published')
             ->with(['variants.prices.currency', 'collections', 'productType', 'media'])
-            ->when($request->filled('kategorija'), function ($query) use ($request): void {
-                $slug = $request->string('kategorija');
-
-                $query->whereHas('collections', fn ($q) => $q->whereJsonContains('attribute_data->slug->value', (string) $slug));
+            ->when(filled($filters['category']), function ($query) use ($filters): void {
+                $query->whereHas('collections', fn ($q) => $q->whereJsonContains(
+                    'attribute_data->slug->value',
+                    $filters['category'],
+                ));
             })
-            ->when($request->filled('tip'), function ($query) use ($request): void {
-                $type = $request->string('tip') === 'set' ? 'Set' : 'Proizvod';
+            ->when(filled($filters['type']), function ($query) use ($filters): void {
+                $type = $filters['type'] === 'set' ? 'Set' : 'Proizvod';
 
                 $query->whereHas('productType', fn ($q) => $q->where('name', $type));
             })
-            ->when($request->filled('trazi'), function ($query) use ($request): void {
-                $term = '%'.$request->string('trazi').'%';
-
-                $query->where('attribute_data', 'like', $term);
+            ->when(filled($filters['q']), function ($query) use ($filters): void {
+                $query->where('attribute_data', 'like', '%'.$filters['q'].'%');
             })
             ->orderBy('id')
-            ->paginate($request->integer('per_page', 24));
+            ->paginate($filters['per_page']);
 
         return $this->response
             ->paginator($products, new ShopProductTransformer)
