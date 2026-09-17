@@ -23,6 +23,7 @@ class CatalogueSeeder extends Seeder
             CollectionSeeder::class,
             ProductSeeder::class,
             ProductBundleSeeder::class,
+            ReviewSeeder::class,
         ]);
     }
 }

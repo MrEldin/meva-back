@@ -7,9 +7,11 @@ use Illuminate\Http\Response;
 use Lunar\Models\Collection as LunarCollection;
 use Lunar\Models\Product;
 use Meva\Api\V1\Controllers\Controller;
+use Meva\Api\V1\Transformers\Commerce\ReviewTransformer;
 use Meva\Api\V1\Transformers\Commerce\ShopCollectionTransformer;
 use Meva\Api\V1\Transformers\Commerce\ShopProductTransformer;
 use Meva\Entities\Catalogue\CatalogueCache;
+use Meva\Entities\Catalogue\Models\Review;
 
 /**
  * The public catalogue. No authentication: this is what the storefront reads.
@@ -108,6 +110,31 @@ class CatalogController extends Controller
         return $this->response
             ->collection($collections, new ShopCollectionTransformer)
             ->setStatusCode(Response::HTTP_OK);
+    }
+
+    /**
+     * What customers wrote.
+     *
+     * The ones attached to a product come first: a review means more beside
+     * the jar it was left on, and those are the ones a reader can act on.
+     */
+    public function reviews(Request $request)
+    {
+        $limit = min($request->integer('per_page', 12), 50);
+
+        return $this->cached('reviews:'.$limit, fn () => $this->response
+            ->collection(
+                Review::query()
+                    ->published()
+                    ->with(['product.media'])
+                    ->orderByRaw('(product_id is null) asc')
+                    ->orderByDesc('published_at')
+                    ->orderByDesc('id')
+                    ->limit($limit)
+                    ->get(),
+                new ReviewTransformer
+            )
+            ->setStatusCode(Response::HTTP_OK));
     }
 
     /**
