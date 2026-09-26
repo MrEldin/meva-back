@@ -41,8 +41,8 @@ main shot and the studio photographs are carried over.
 - **The cutout leads.** Sixty-seven products were photographed again and lifted
   off their background; they sit beside the photographs as
   `<folder>-bez-pozadine-bez-cveca.webp` (or the earlier, flowered
-  `<folder>-bez-pozadine.webp`), 1000 pixels square, made from the 1254-pixel
-  PNGs with `cwebp -q 82 -resize 1000 1000`. The PNGs are not committed.
+  `<folder>-bez-pozadine.webp`), 1000 pixels wide, made from the larger
+  PNGs with `cwebp -q 82 -resize 1000 0` (width 1000, height to match; one is not square). The PNGs are not committed.
 
 ## Re-running
 
