@@ -38,6 +38,11 @@ main shot and the studio photographs are carried over.
   no native bundle type, and flattening them would lose what each set contains.
 - **Stock starts at zero** everywhere. The old shop never tracked it, so there
   is no opening figure to carry over.
+- **The cutout leads.** Sixty-seven products were photographed again and lifted
+  off their background; they sit beside the photographs as
+  `<folder>-bez-pozadine-bez-cveca.webp` (or the earlier, flowered
+  `<folder>-bez-pozadine.webp`), 1000 pixels square, made from the 1254-pixel
+  PNGs with `cwebp -q 82 -resize 1000 1000`. The PNGs are not committed.
 
 ## Re-running
 
@@ -46,4 +51,12 @@ safe. Images are only attached to a product that has none, so re-runs are fast.
 
 ```bash
 php artisan db:seed --class="Database\Seeders\Meva\CatalogueSeeder"
+```
+
+On a live shop, do not re-seed to pick up regenerated cutouts: the seeder also
+writes the exported names, descriptions and prices back over whatever has been
+edited in the admin since. This swaps the cutouts and nothing else:
+
+```bash
+php artisan meva:cutouts
 ```

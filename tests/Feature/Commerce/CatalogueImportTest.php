@@ -92,6 +92,44 @@ it('never imports the marketing artwork', function () {
     expect($paths->filter(fn (string $name): bool => str_contains($name, 'galerija')))->toBeEmpty();
 });
 
+it('leads with the cutout without the flowers', function () {
+    seedWithImages();
+
+    $cutout = ProductVariant::where('sku', 'MEVA-17041')->sole()->product   // Derma roler
+        ->getMedia('images')
+        ->filter(fn ($media): bool => (bool) $media->getCustomProperty('cutout'));
+
+    expect($cutout)->toHaveCount(1)
+        ->and($cutout->first()->file_name)->toBe('derma-roler-bez-pozadine-bez-cveca.webp')
+        ->and($cutout->first()->getCustomProperty('primary'))->toBeTrue();
+});
+
+it('swaps a stale cutout for the current one without touching anything else', function () {
+    seedWithImages();
+
+    $product = ProductVariant::where('sku', 'MEVA-17041')->sole()->product;
+    $before = $product->getMedia('images')->count();
+
+    // Put the flowered cutout back, as a shop seeded before the plain ones existed would have.
+    $product->getMedia('images')->first(fn ($m): bool => (bool) $m->getCustomProperty('cutout'))->delete();
+    $product->addMedia(Database\Seeders\Meva\MevaExport::imagePath('derma-roler/derma-roler-bez-pozadine.webp'))
+        ->preservingOriginal()
+        ->withCustomProperties(['cutout' => true, 'primary' => true])
+        ->toMediaCollection('images');
+
+    $this->artisan('meva:cutouts')->assertSuccessful();
+
+    $images = $product->fresh()->getMedia('images');
+    $cutouts = $images->filter(fn ($m): bool => (bool) $m->getCustomProperty('cutout'));
+
+    expect($images)->toHaveCount($before)
+        ->and($cutouts)->toHaveCount(1)
+        ->and($cutouts->first()->file_name)->toBe('derma-roler-bez-pozadine-bez-cveca.webp');
+
+    // Nothing to do the second time round.
+    $this->artisan('meva:cutouts')->expectsOutputToContain('Cutouts replaced: 0')->assertSuccessful();
+});
+
 it('can be run twice without duplicating anything', function () {
     $this->seed(CatalogueSeeder::class);
 

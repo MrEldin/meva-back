@@ -30,4 +30,5 @@ yarn-error.log
 # The cutouts are made as large PNGs and committed as the WebP the seeder
 # reads; the originals stay on whoever generated them.
 database/seeders/assets/images/**/*-bez-pozadine.png
+database/seeders/assets/images/**/*-bez-pozadine-bez-cveca.png
 .DS_Store

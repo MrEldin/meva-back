@@ -247,50 +247,14 @@ class ProductSeeder extends Seeder
 
     /**
      * Attach the cutout -- the same product photographed and then lifted off
-     * its background -- when one has been made for it.
-     *
-     * These arrived after the WooCommerce export was written, so they are not
-     * listed in products.json; they are found by name next to the photographs,
-     * as "<folder>/<folder>-bez-pozadine.webp". The storefront leads with them
-     * because a transparent product can stand on a tinted circle, in open
-     * white, or in a diagram, where a square photograph can only sit in a box.
-     *
-     * Sixty-seven of the seventy-three products have one; the rest keep the
-     * photograph as their main picture, so this is allowed to find nothing.
+     * its background -- when one has been made for it. Cutouts says which
+     * file that is and why.
      *
      * @param  array<string, mixed>  $row
      */
     protected function syncCutout(Product $product, array $row): void
     {
-        $folder = (string) ($row['folder'] ?? $row['slug'] ?? '');
-
-        if ($folder === '') {
-            return;
-        }
-
-        $path = MevaExport::imagePath("{$folder}/{$folder}-bez-pozadine.webp");
-
-        if (! is_file($path)) {
-            return;
-        }
-
-        $existing = $product->getMedia('images')
-            ->first(fn ($media): bool => (bool) $media->getCustomProperty('cutout'));
-
-        // Re-running the seeder after a cutout is regenerated should replace
-        // it, not stack a second copy behind the first.
-        if ($existing !== null) {
-            if ($existing->size === filesize($path)) {
-                return;
-            }
-
-            $existing->delete();
-        }
-
-        $product->addMedia($path)
-            ->preservingOriginal()
-            ->withCustomProperties(['cutout' => true, 'primary' => true])
-            ->toMediaCollection('images');
+        Cutouts::sync($product, (string) ($row['folder'] ?? $row['slug'] ?? ''));
     }
 
     /**
