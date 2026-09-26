@@ -3,6 +3,7 @@
 use Meva\Api\V1\Controllers\Shop\CatalogController;
 use Meva\Api\V1\Controllers\Shop\CheckoutController;
 use Meva\Api\V1\Controllers\Shop\SearchController;
+use Meva\Api\V1\Controllers\Shop\SkinCheckController;
 
 $api = app('Dingo\Api\Routing\Router');
 
@@ -24,5 +25,7 @@ $api->version('v1', function ($api) {
         $api->get('reviews', CatalogController::class.'@reviews')->name('reviews');
         $api->get('search', SearchController::class)->name('search');
         $api->post('orders', CheckoutController::class.'@store')->name('orders.store');
+        // The app's camera: a photograph in, a concern and a shelf out. Costs a model call, so it is rationed.
+        $api->post('skin-check', ['middleware' => 'throttle:20,1', 'uses' => SkinCheckController::class.'@__invoke'])->name('skin-check');
     });
 });
