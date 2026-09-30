@@ -10,6 +10,7 @@ use Lunar\Models\ProductVariant;
 use Meva\Entities\Catalogue\CatalogueCache;
 use Meva\Entities\Catalogue\Console\MarkCutoutsCommand;
 use Meva\Entities\Catalogue\Console\SplitLabelCommand;
+use Meva\Entities\Catalogue\Console\TidyUsageCommand;
 
 /**
  * Keeps the cached catalogue honest.
@@ -25,7 +26,7 @@ class CatalogueServiceProvider extends ServiceProvider
         }
 
         if ($this->app->runningInConsole()) {
-            $this->commands([MarkCutoutsCommand::class, SplitLabelCommand::class]);
+            $this->commands([MarkCutoutsCommand::class, SplitLabelCommand::class, TidyUsageCommand::class]);
         }
     }
 }

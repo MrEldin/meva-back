@@ -37,3 +37,27 @@ it('splits the short description written as plain lines, and lists the ingredien
         ->and(Label::textToHtml($parts['ingredients']))->toBe('<ul><li>Aqua</li><li>Glycerin</li></ul>')
         ->and(Label::textToHtml($parts['usage']))->toBe('<p>Naneti na mokru kosu.</p>');
 });
+
+it('takes the trailing facts out of the directions as tidy paragraphs', function () {
+    $usage = '<p>Nanesite tanki sloj.</p><p><b>MIRIS:</b> Ima prijatan miris, kokos i badem. AMBALAŽA: Bela, plastična Pakovanje: 200ml</p>';
+
+    $tidy = Label::tidyUsage($usage);
+
+    expect($tidy['usage'])->toBe('<p>Nanesite tanki sloj.</p>')
+        ->and($tidy['facts'])->toBe('<p><strong>Miris:</strong> Ima prijatan miris, kokos i badem.</p><p><strong>Ambalaža:</strong> Bela, plastična.</p><p><strong>Pakovanje:</strong> 200ml.</p>')
+        ->and($tidy['ingredients'])->toBe('');
+});
+
+it('leaves dosage lines in the directions, and pulls a stray ingredient list out', function () {
+    $usage = '<p>Odrasli: svaki dan. Deca 7+: svako treće veče.</p><p>Sastojci:</p><ul><li>Aqua (Voda)</li></ul>';
+
+    $tidy = Label::tidyUsage($usage);
+
+    expect($tidy['usage'])->toBe('<p>Odrasli: svaki dan. Deca 7+: svako treće veče.</p>')
+        ->and($tidy['ingredients'])->toBe('<ul><li>Aqua (Voda)</li></ul>')
+        ->and($tidy['facts'])->toBe('');
+});
+
+it('leaves clean directions alone', function () {
+    expect(Label::tidyUsage('<p>Nanesite uveče.</p>'))->toBe(['usage' => '<p>Nanesite uveče.</p>', 'facts' => '', 'ingredients' => '']);
+});

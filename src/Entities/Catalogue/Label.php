@@ -74,6 +74,58 @@ class Label
     }
 
     /**
+     * The facts that trail the directions on some labels -- scent, packaging,
+     * size, storage -- written as shouted labels: "AMBALAŽA: Bela, plastična".
+     */
+    private const FACT_MARK = '~(?:<(?:strong|b|p|h[1-6]|span)[^>]*>\s*)*(miris|ambala[žz]a|pakovanje|na[čc]in [čc]uvanja|[čc]uvanje|rok trajanja)\s*:\s*(?:</(?:strong|b|span)>\s*)?~iu';
+
+    /**
+     * Take the trailing facts, and any ingredient list, out of the directions.
+     *
+     * The facts come back as tidy paragraphs for the end of the description
+     * ("Miris: …", "Pakovanje: 50 ml"); the ingredients as HTML for the rows.
+     *
+     * @return array{usage: string, facts: string, ingredients: string}
+     */
+    public static function tidyUsage(string $usage): array
+    {
+        $parts = self::splitHtml('<p>x</p>'.$usage);
+        $ingredients = $parts['ingredients'];
+        $usage = $parts['description'] === '<p>x</p>' ? $usage : trim(substr($parts['description'], strlen('<p>x</p>')));
+        $usage = $parts['usage'] !== '' ? $usage.$parts['usage'] : $usage;
+
+        preg_match_all(self::FACT_MARK, $usage, $matches, PREG_OFFSET_CAPTURE | PREG_SET_ORDER);
+
+        if ($matches === []) {
+            return ['usage' => trim($usage), 'facts' => '', 'ingredients' => $ingredients];
+        }
+
+        $kept = trim(substr($usage, 0, $matches[0][0][1]));
+        $facts = [];
+
+        foreach ($matches as $i => $match) {
+            $start = $match[0][1] + strlen($match[0][0]);
+            $end = $matches[$i + 1][0][1] ?? strlen($usage);
+            $text = trim(preg_replace('~\s+~u', ' ', html_entity_decode(strip_tags(substr($usage, $start, $end - $start)), ENT_QUOTES | ENT_HTML5, 'UTF-8')), " \t.");
+
+            if ($text !== '') {
+                $label = mb_convert_case(mb_strtolower($match[1][0]), MB_CASE_TITLE, 'UTF-8');
+                $facts[] = '<p><strong>'.e($label).':</strong> '.e($text).'.</p>';
+            }
+        }
+
+        return ['usage' => self::stripEmpty($kept), 'facts' => implode('', $facts), 'ingredients' => $ingredients];
+    }
+
+    /**
+     * Drop the empty paragraphs a cut leaves behind.
+     */
+    private static function stripEmpty(string $html): string
+    {
+        return trim(preg_replace('~<(p|div|span|strong|b)[^>]*>(?:\s|&nbsp;|<br\s*/?>)*</\1>~iu', '', $html));
+    }
+
+    /**
      * Plain text lines as simple HTML: an ingredient list becomes a list.
      */
     public static function textToHtml(string $text): string
