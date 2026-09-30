@@ -24,7 +24,10 @@ class ProductUpdateRequest extends ApiFormRequest
             'slug' => ['sometimes', 'required', 'string', 'max:255', 'regex:/^[a-z0-9-]+$/'],
             'description' => ['nullable', 'string'],
             'short_description' => ['nullable', 'string'],
-            'ingredients' => ['nullable', 'string'],
+            // One row per ingredient, in label order.
+            'ingredients' => ['nullable', 'array', 'max:200'],
+            'ingredients.*.inci' => ['nullable', 'string', 'max:255'],
+            'ingredients.*.name' => ['nullable', 'string', 'max:255'],
             'usage' => ['nullable', 'string'],
             'status' => ['sometimes', 'required', 'string', 'in:published,draft'],
             // Dinars, as the shop quotes them; stored in minor units.

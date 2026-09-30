@@ -3,6 +3,7 @@
 namespace Meva\Api\V1\Transformers\Commerce;
 
 use Lunar\Models\Product;
+use Meva\Entities\Catalogue\Ingredients;
 use Meva\Entities\Catalogue\Money;
 use PHPOpenSourceSaver\Fractal\TransformerAbstract;
 
@@ -37,7 +38,7 @@ class ProductTransformer extends TransformerAbstract
             'slug' => $this->attribute($product, 'slug'),
             'description' => $this->attribute($product, 'description'),
             'short_description' => $this->attribute($product, 'short_description'),
-            'ingredients' => $this->attribute($product, 'ingredients'),
+            'ingredients' => Ingredients::of($product->id)->all(),
             'usage' => $this->attribute($product, 'usage'),
             'price' => $this->price($product),
             'image' => $product->getFirstMediaUrl('images') ?: null,

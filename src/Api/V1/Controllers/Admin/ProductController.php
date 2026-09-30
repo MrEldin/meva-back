@@ -11,6 +11,7 @@ use Lunar\Models\Price;
 use Lunar\Models\Product;
 use Meva\Api\V1\Controllers\Controller;
 use Meva\Entities\Catalogue\CatalogueCache;
+use Meva\Entities\Catalogue\Ingredients;
 use Meva\Entities\Catalogue\Transparency;
 use Meva\Api\V1\Requests\Product\ProductCreateRequest;
 use Meva\Api\V1\Requests\Product\ProductUpdateRequest;
@@ -183,6 +184,10 @@ class ProductController extends Controller
 
         if (array_key_exists('categories', $data)) {
             $this->shelve($product, $data['categories']);
+        }
+
+        if (array_key_exists('ingredients', $data)) {
+            Ingredients::replace($product->id, $data['ingredients'] ?? []);
         }
 
         return $this->response
@@ -384,7 +389,7 @@ class ProductController extends Controller
     {
         $attributes = $product->attribute_data ?? collect();
 
-        foreach (['name', 'slug', 'description', 'short_description', 'ingredients', 'usage'] as $handle) {
+        foreach (['name', 'slug', 'description', 'short_description', 'usage'] as $handle) {
             if (array_key_exists($handle, $data) && $data[$handle] !== null) {
                 $attributes->put($handle, new Text($data[$handle]));
             }

@@ -5,6 +5,7 @@ namespace Meva\Api\V1\Transformers\Commerce;
 use Lunar\Models\Price;
 use Lunar\Models\Product;
 use Lunar\Models\ProductVariant;
+use Meva\Entities\Catalogue\Ingredients;
 use Meva\Entities\Catalogue\Money;
 use PHPOpenSourceSaver\Fractal\TransformerAbstract;
 
@@ -48,9 +49,9 @@ class ShopProductTransformer extends TransformerAbstract
     {
         return $this->primitive([
             'html' => (string) $product->attribute_data?->get('description'),
-            // Each empty when the product has none: a set often has no
-            // ingredients of its own, and the page then shows no such section.
-            'ingredients' => (string) $product->attribute_data?->get('ingredients'),
+            // Groups of rows: one for a product, one per part for a set.
+            // Empty when there are none, and the page shows no such section.
+            'ingredients' => Ingredients::groups($product),
             'usage' => (string) $product->attribute_data?->get('usage'),
         ]);
     }

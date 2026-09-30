@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Lunar\FieldTypes\Text;
 use Lunar\Models\Product;
 use Meva\Entities\Catalogue\CatalogueCache;
+use Meva\Entities\Catalogue\Ingredients;
 use Meva\Entities\Catalogue\Label;
 
 /**
@@ -30,7 +31,7 @@ class SplitLabelCommand extends Command
         foreach (Product::query()->cursor() as $product) {
             $data = $product->attribute_data ?? collect();
 
-            if (trim((string) $data->get('ingredients')) !== '' || trim((string) $data->get('usage')) !== '') {
+            if (Ingredients::of($product->id)->isNotEmpty() || trim((string) $data->get('usage')) !== '') {
                 continue;
             }
 
@@ -54,7 +55,9 @@ class SplitLabelCommand extends Command
                 continue;
             }
 
-            $data->put('ingredients', new Text($ingredients));
+            if ($ingredients !== '' && $product->productType?->name !== 'Set') {
+                Ingredients::replace($product->id, Ingredients::parse($ingredients));
+            }
             $data->put('usage', new Text($usage));
             $data->put('description', new Text($html['description']));
             $data->put('short_description', new Text($text['description']));

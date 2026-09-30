@@ -8,6 +8,7 @@ use Lunar\FieldTypes\Text;
 use Lunar\Models\Currency;
 use Lunar\Models\Product;
 use Lunar\Models\ProductType;
+use Meva\Entities\Catalogue\Ingredients;
 
 /**
  * Creates a Lunar product together with its variants and prices.
@@ -39,7 +40,6 @@ class ProductCreateService
                     'short_description' => isset($data['short_description']) ? new Text($data['short_description']) : null,
                     // The label's other two parts, kept apart from the description
                     // so the page can fold each away on its own.
-                    'ingredients' => isset($data['ingredients']) ? new Text($data['ingredients']) : null,
                     'usage' => isset($data['usage']) ? new Text($data['usage']) : null,
                 ])),
             ]);
@@ -57,6 +57,10 @@ class ProductCreateService
 
             foreach ($variants as $variantData) {
                 $this->addVariant($product, $variantData);
+            }
+
+            if (! empty($data['ingredients'])) {
+                Ingredients::replace($product->id, $data['ingredients']);
             }
 
             return $product->load('variants.prices');
