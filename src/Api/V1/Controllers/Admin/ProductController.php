@@ -384,7 +384,7 @@ class ProductController extends Controller
     {
         $attributes = $product->attribute_data ?? collect();
 
-        foreach (['name', 'slug', 'description', 'short_description'] as $handle) {
+        foreach (['name', 'slug', 'description', 'short_description', 'ingredients', 'usage'] as $handle) {
             if (array_key_exists($handle, $data) && $data[$handle] !== null) {
                 $attributes->put($handle, new Text($data[$handle]));
             }

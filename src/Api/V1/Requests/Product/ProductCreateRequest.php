@@ -24,6 +24,8 @@ class ProductCreateRequest extends ApiFormRequest
             'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9-]+$/'],
             'description' => ['nullable', 'string'],
             'short_description' => ['nullable', 'string'],
+            'ingredients' => ['nullable', 'string'],
+            'usage' => ['nullable', 'string'],
             'status' => ['nullable', 'string', 'in:published,draft'],
             // Dinars, as the shop quotes them.
             'price' => ['nullable', 'numeric', 'min:0'],

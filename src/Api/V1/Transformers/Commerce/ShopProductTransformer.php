@@ -48,6 +48,10 @@ class ShopProductTransformer extends TransformerAbstract
     {
         return $this->primitive([
             'html' => (string) $product->attribute_data?->get('description'),
+            // Each empty when the product has none: a set often has no
+            // ingredients of its own, and the page then shows no such section.
+            'ingredients' => (string) $product->attribute_data?->get('ingredients'),
+            'usage' => (string) $product->attribute_data?->get('usage'),
         ]);
     }
 

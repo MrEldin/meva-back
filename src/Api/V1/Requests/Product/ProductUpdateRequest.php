@@ -24,6 +24,8 @@ class ProductUpdateRequest extends ApiFormRequest
             'slug' => ['sometimes', 'required', 'string', 'max:255', 'regex:/^[a-z0-9-]+$/'],
             'description' => ['nullable', 'string'],
             'short_description' => ['nullable', 'string'],
+            'ingredients' => ['nullable', 'string'],
+            'usage' => ['nullable', 'string'],
             'status' => ['sometimes', 'required', 'string', 'in:published,draft'],
             // Dinars, as the shop quotes them; stored in minor units.
             'price' => ['sometimes', 'required', 'numeric', 'min:0', 'max:1000000'],

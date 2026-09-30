@@ -37,6 +37,10 @@ class ProductCreateService
                     'slug' => new Text($data['slug'] ?? Str::slug($data['name'])),
                     'description' => isset($data['description']) ? new Text($data['description']) : null,
                     'short_description' => isset($data['short_description']) ? new Text($data['short_description']) : null,
+                    // The label's other two parts, kept apart from the description
+                    // so the page can fold each away on its own.
+                    'ingredients' => isset($data['ingredients']) ? new Text($data['ingredients']) : null,
+                    'usage' => isset($data['usage']) ? new Text($data['usage']) : null,
                 ])),
             ]);
 

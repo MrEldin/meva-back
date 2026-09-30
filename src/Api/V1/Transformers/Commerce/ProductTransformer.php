@@ -37,6 +37,8 @@ class ProductTransformer extends TransformerAbstract
             'slug' => $this->attribute($product, 'slug'),
             'description' => $this->attribute($product, 'description'),
             'short_description' => $this->attribute($product, 'short_description'),
+            'ingredients' => $this->attribute($product, 'ingredients'),
+            'usage' => $this->attribute($product, 'usage'),
             'price' => $this->price($product),
             'image' => $product->getFirstMediaUrl('images') ?: null,
             'sku' => $product->variants->first()?->sku,
