@@ -30,7 +30,13 @@ return new class extends Migration
 
     public function up(): void
     {
-        $group = CollectionGroup::where('handle', 'kategorije')->firstOrFail();
+        $group = CollectionGroup::where('handle', 'kategorije')->first();
+
+        // A fresh database (the test suite, a new install) has no shelves to
+        // tidy; the seeders build them right in the first place.
+        if ($group === null || $this->collection('kosa') === null) {
+            return;
+        }
 
         foreach (self::NEW as $slug => [$name, $products]) {
             $collection = $this->collection($slug) ?? Collection::create([
@@ -56,6 +62,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if ($this->collection('kosa') === null) {
+            return;
+        }
+
         foreach (array_keys(self::NEW) as $slug) {
             if ($collection = $this->collection($slug)) {
                 $collection->products()->detach();
