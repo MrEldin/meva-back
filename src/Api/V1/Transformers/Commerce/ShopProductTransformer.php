@@ -71,22 +71,39 @@ class ShopProductTransformer extends TransformerAbstract
     }
 
     /**
-     * Include what a set is made of.
+     * Include what a set is made of: each part with its own picture, price
+     * and address, so the page can show the set as the shelf it is and say
+     * what the parts would cost one by one.
      */
     public function includeSet(Product $product)
     {
-        $items = \Illuminate\Support\Facades\DB::table('product_bundle_items as b')
-            ->join('lunar_products as p', 'p.id', '=', 'b.item_product_id')
-            ->where('b.bundle_product_id', $product->id)
-            ->select('p.id', 'p.attribute_data', 'b.quantity')
+        $rows = \Illuminate\Support\Facades\DB::table('product_bundle_items')
+            ->where('bundle_product_id', $product->id)
+            ->orderBy('id')
             ->get()
-            ->map(fn ($row): array => [
-                'id' => (int) $row->id,
-                'name' => (string) (json_decode($row->attribute_data, true)['name']['value'] ?? ''),
-                'quantity' => (int) $row->quantity,
-            ]);
+            ->keyBy('item_product_id');
 
-        return $this->primitive($items->all());
+        if ($rows->isEmpty()) {
+            return $this->primitive([]);
+        }
+
+        $parts = Product::query()
+            ->with(['variants.prices.currency', 'media'])
+            ->whereIn('id', $rows->keys())
+            ->get()
+            ->sortBy(fn (Product $p): int => (int) $rows[$p->id]->id)
+            ->map(fn (Product $p): array => [
+                'id' => (int) $p->id,
+                'name' => (string) $p->attribute_data?->get('name'),
+                'slug' => (string) $p->attribute_data?->get('slug'),
+                'published' => $p->status === 'published',
+                'price' => $this->price($p->variants->first(), 'RSD'),
+                'image' => $this->primaryImage($p),
+                'quantity' => (int) $rows[$p->id]->quantity,
+            ])
+            ->values();
+
+        return $this->primitive($parts->all());
     }
 
     /**

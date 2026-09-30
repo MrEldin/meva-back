@@ -152,3 +152,19 @@ it('puts a new set on the Setovi shelf, and any shelf the desk chose', function 
     expect($this->get(url('/api/admin/products/categories'), authHeaders())->json('data'))->toHaveCount(2);
     expect($sets->products()->count())->toBe(0);
 });
+
+it('tells the storefront what a set is made of, with each part\'s price and address', function () {
+    $id = makeSet(['status' => 'published', 'slug' => 'set-protiv-flekica'])->json('data.id');
+
+    $response = $this->get(url('/api/shop/products/set-protiv-flekica?include=set'));
+
+    $response->assertStatus(Response::HTTP_OK);
+    $parts = $response->json('data.set.data') ?? $response->json('data.set');
+
+    expect($parts)->toHaveCount(2)
+        ->and($parts[0]['name'])->toBe('Krema')
+        ->and($parts[0]['slug'])->toBe('krema')
+        ->and($parts[0]['quantity'])->toBe(2)
+        ->and($parts[0]['price']['formatted'])->toBe('1.000 RSD')
+        ->and((float) $parts[1]['price']['amount'])->toBe(2500.0);
+});
