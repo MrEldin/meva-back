@@ -21,13 +21,18 @@ class MarkCutoutsCommand extends Command
 
     public function handle(): int
     {
-        $candidates = Media::query()
+        $images = Media::query()
             ->where('collection_name', 'images')
             ->whereIn('mime_type', ['image/png', 'image/webp'])
-            ->get()
-            ->filter(fn (Media $media): bool => ! $media->getCustomProperty('cutout'));
+            ->get();
 
-        $marked = [];
+        $candidates = $images->filter(fn (Media $media): bool => ! $media->getCustomProperty('cutout'));
+
+        // Marked earlier but never given their transparent sizes.
+        $marked = $images
+            ->filter(fn (Media $media): bool => $media->getCustomProperty('cutout') && ! $media->hasGeneratedConversion('cutout'))
+            ->pluck('id')
+            ->all();
 
         foreach ($candidates as $media) {
             $path = $media->getPath();
@@ -46,12 +51,12 @@ class MarkCutoutsCommand extends Command
             $marked[] = $media->id;
         }
 
-        if ($marked !== []) {
-            Artisan::call('media-library:regenerate', ['--ids' => implode(',', $marked)], $this->output);
+        if ($marked !== [] && ! $this->option('dry')) {
+            Artisan::call('media-library:regenerate', ['--ids' => implode(',', $marked), '--force' => true], $this->output);
             CatalogueCache::bump();
         }
 
-        $this->info(count($marked).' marked, '.($candidates->count() - count($marked)).' left as photographs.');
+        $this->info(count($marked).' cutouts made, '.$candidates->count().' looked at.');
 
         return self::SUCCESS;
     }

@@ -34,6 +34,12 @@ class Transparency
             return false;
         }
 
+        // A palette PNG answers imagecolorat() with an index, not a colour;
+        // as truecolor it answers with the pixel, alpha included.
+        if (! imageistruecolor($image)) {
+            imagepalettetotruecolor($image);
+        }
+
         $w = imagesx($image);
         $h = imagesy($image);
 
