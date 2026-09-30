@@ -32,7 +32,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $products = Product::query()
-            ->with(['variants.prices.currency', 'media', 'productType'])
+            ->with(['variants.prices.currency', 'media', 'productType', 'collections'])
             ->when($request->filled('status'), fn ($query) => $query->status($request->string('status')))
             ->when($request->filled('q'), fn ($query) => $query->whereRaw(
                 "attribute_data->'name'->>'value' ilike ?",
@@ -103,7 +103,7 @@ class ProductController extends Controller
      */
     public function show(int $id)
     {
-        $product = Product::query()->with(['variants.prices.currency', 'media', 'productType'])->findOrFail($id);
+        $product = Product::query()->with(['variants.prices.currency', 'media', 'productType', 'collections'])->findOrFail($id);
 
         return $this->response
             ->item($product, new ProductTransformer)
@@ -111,15 +111,50 @@ class ProductController extends Controller
     }
 
     /**
+     * Every shelf a product can be put on, whether or not anything is on it yet.
+     */
+    public function categories()
+    {
+        $collections = \Lunar\Models\Collection::query()->withCount('products')->get()
+            ->map(fn ($c): array => [
+                'id' => (int) $c->id,
+                'slug' => (string) $c->attribute_data?->get('slug'),
+                'name' => (string) $c->attribute_data?->get('name'),
+                'products_count' => (int) $c->products_count,
+            ])
+            ->sortBy('name')
+            ->values();
+
+        return $this->response->array(['data' => $collections->all()])->setStatusCode(Response::HTTP_OK);
+    }
+
+    /**
      * Create a product, with its variants and prices.
      */
     public function create(ProductCreateRequest $request, ProductCreateService $products)
     {
-        $product = $products->handle($request->validated());
+        $data = $request->validated();
+        $product = $products->handle($data);
+
+        if (array_key_exists('categories', $data)) {
+            $this->shelve($product, $data['categories']);
+        }
 
         return $this->response
-            ->item($product, new ProductTransformer)
+            ->item($product->load(['productType', 'collections']), new ProductTransformer)
             ->setStatusCode(Response::HTTP_CREATED);
+    }
+
+    /**
+     * Put the product on exactly these shelves.
+     *
+     * @param  array<int, int>  $categoryIds
+     */
+    protected function shelve(Product $product, array $categoryIds): void
+    {
+        $product->collections()->sync($categoryIds);
+        $product->unsetRelation('collections');
+        CatalogueCache::bump();
     }
 
     /**
@@ -146,8 +181,12 @@ class ProductController extends Controller
             $this->setPrice($product, (float) $data['price']);
         }
 
+        if (array_key_exists('categories', $data)) {
+            $this->shelve($product, $data['categories']);
+        }
+
         return $this->response
-            ->item($product->load('variants.prices'), new ProductTransformer)
+            ->item($product->load(['variants.prices', 'productType', 'collections']), new ProductTransformer)
             ->setStatusCode(Response::HTTP_OK);
     }
 

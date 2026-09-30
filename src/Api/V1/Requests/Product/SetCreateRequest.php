@@ -18,6 +18,8 @@ class SetCreateRequest extends SetItemsRequest
             // Dinars; left out, the set costs what its parts cost together.
             'price' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
             'sku' => ['nullable', 'string', 'max:255'],
+            'categories' => ['sometimes', 'array'],
+            'categories.*' => ['integer', 'exists:lunar_collections,id'],
             ...parent::rules(),
         ];
     }

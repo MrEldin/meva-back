@@ -23,6 +23,7 @@ $api->version('v1', function ($api) {
         'as' => 'admin.products',
     ], function ($api) {
         $api->get('', ProductController::class.'@index')->name('index');
+        $api->get('categories', ProductController::class.'@categories')->name('categories');
         $api->get('{id}', ProductController::class.'@show')->name('show');
         $api->get('{id}/set', SetController::class.'@show')->name('set.show');
     });

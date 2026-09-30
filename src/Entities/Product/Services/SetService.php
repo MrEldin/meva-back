@@ -5,6 +5,7 @@ namespace Meva\Entities\Product\Services;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Lunar\Models\Collection as Shelf;
 use Lunar\Models\Product;
 use Lunar\Models\ProductType;
 use Meva\Entities\Catalogue\CatalogueCache;
@@ -91,9 +92,29 @@ class SetService
             ]);
 
             $this->write($set, $items);
+            $this->shelve($set, $data['categories'] ?? []);
 
             return $set;
         });
+    }
+
+    /**
+     * A set sits on the Setovi shelf, which is what the storefront's set
+     * filter reads, plus whatever other shelves the desk chose.
+     *
+     * @param  array<int, int>  $categoryIds
+     */
+    protected function shelve(Product $set, array $categoryIds): void
+    {
+        $shelf = Shelf::query()->whereJsonContains('attribute_data->slug->value', 'setovi')->value('id');
+        $ids = collect($categoryIds)->map(fn ($id): int => (int) $id);
+
+        if ($shelf !== null) {
+            $ids->push((int) $shelf);
+        }
+
+        $set->collections()->sync($ids->unique()->all());
+        $set->unsetRelation('collections');
     }
 
     /**
@@ -110,6 +131,7 @@ class SetService
                 $product->product_type_id = $this->type(self::TYPE_SET)->id;
                 $product->save();
                 $product->unsetRelation('productType');
+                $this->shelve($product, $product->collections()->pluck('lunar_collections.id')->all());
             }
 
             $this->write($product, $items);

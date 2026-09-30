@@ -29,6 +29,9 @@ class ProductUpdateRequest extends ApiFormRequest
             'price' => ['sometimes', 'required', 'numeric', 'min:0', 'max:1000000'],
             'product_type_id' => ['sometimes', 'required', 'integer', 'exists:lunar_product_types,id'],
             'brand_id' => ['nullable', 'integer', 'exists:lunar_brands,id'],
+            // The shelves it sits on; the storefront filters by these.
+            'categories' => ['sometimes', 'array'],
+            'categories.*' => ['integer', 'exists:lunar_collections,id'],
         ];
     }
 }

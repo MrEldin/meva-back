@@ -30,7 +30,7 @@ class SetController extends Controller
         $set = $this->sets->create($data, $items);
 
         return $this->response
-            ->item($set->load('productType'), new ProductTransformer)
+            ->item($set->load(['productType', 'collections']), new ProductTransformer)
             ->setStatusCode(Response::HTTP_CREATED);
     }
 

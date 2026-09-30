@@ -131,3 +131,24 @@ it('filters and sorts the listing for the desk', function () {
         ->and($only(['sort' => 'price_desc']))->toBe([$this->lotion->id, $this->cream->id, $set])
         ->and($only(['sort' => 'name']))->toBe([$this->cream->id, $this->lotion->id, $set]);
 });
+
+it('puts a new set on the Setovi shelf, and any shelf the desk chose', function () {
+    $group = \Lunar\Models\CollectionGroup::factory()->create(['handle' => 'kategorije']);
+    $shelf = fn (string $slug, string $name) => \Lunar\Models\Collection::factory()->create([
+        'collection_group_id' => $group->id,
+        'attribute_data' => collect(['name' => new \Lunar\FieldTypes\Text($name), 'slug' => new \Lunar\FieldTypes\Text($slug)]),
+    ]);
+    $sets = $shelf('setovi', 'Setovi');
+    $acne = $shelf('akne', 'Akne');
+
+    $response = makeSet(['categories' => [$acne->id]]);
+
+    expect(collect($response->json('data.categories'))->pluck('slug')->all())->toEqualCanonicalizing(['setovi', 'akne']);
+
+    // And the desk can move it to other shelves; Setovi stays because it is a set.
+    $update = $this->put(url('/api/admin/products/'.$response->json('data.id')), ['categories' => [$acne->id]], authHeaders());
+
+    expect(collect($update->json('data.categories'))->pluck('slug')->all())->toBe(['akne']);
+    expect($this->get(url('/api/admin/products/categories'), authHeaders())->json('data'))->toHaveCount(2);
+    expect($sets->products()->count())->toBe(0);
+});
