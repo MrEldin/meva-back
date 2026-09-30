@@ -8,6 +8,7 @@ use Lunar\Models\Price;
 use Lunar\Models\Product;
 use Lunar\Models\ProductVariant;
 use Meva\Entities\Catalogue\CatalogueCache;
+use Meva\Entities\Catalogue\Console\MarkCutoutsCommand;
 
 /**
  * Keeps the cached catalogue honest.
@@ -20,6 +21,10 @@ class CatalogueServiceProvider extends ServiceProvider
         foreach ([Product::class, ProductVariant::class, Price::class, Collection::class] as $model) {
             $model::saved(fn () => CatalogueCache::bump());
             $model::deleted(fn () => CatalogueCache::bump());
+        }
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([MarkCutoutsCommand::class]);
         }
     }
 }

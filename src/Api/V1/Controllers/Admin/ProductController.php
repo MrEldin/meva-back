@@ -10,6 +10,7 @@ use Lunar\Models\Price;
 use Lunar\Models\Product;
 use Meva\Api\V1\Controllers\Controller;
 use Meva\Entities\Catalogue\CatalogueCache;
+use Meva\Entities\Catalogue\Transparency;
 use Meva\Api\V1\Requests\Product\ProductCreateRequest;
 use Meva\Api\V1\Requests\Product\ProductUpdateRequest;
 use Meva\Api\V1\Transformers\Commerce\ProductTransformer;
@@ -153,6 +154,11 @@ class ProductController extends Controller
      * desk took one image or several -- it took one, and destroyed the rest.
      * It appends now, and the first image is still the one the storefront,
      * the share card and the advert feed lead with.
+     *
+     * A file with a see-through background is a cutout, and is marked as one
+     * here, before the conversions are made: only a marked cutout gets the
+     * transparent sizes, and the storefront leads with it. Unmarked, it would
+     * be painted white like a photograph.
      */
     public function uploadImage(Request $request, int $id)
     {
@@ -165,8 +171,10 @@ class ProductController extends Controller
         $first = $product->getMedia('images')->isEmpty();
 
         foreach ($request->file('images') as $file) {
+            $cutout = Transparency::has($file->getRealPath(), $file->getMimeType());
+
             $product->addMedia($file)
-                ->withCustomProperties(['primary' => $first])
+                ->withCustomProperties(['primary' => $first, 'cutout' => $cutout])
                 ->toMediaCollection('images');
 
             $first = false;
@@ -240,7 +248,7 @@ class ProductController extends Controller
      */
     protected function thumbnail($media): string
     {
-        foreach (['medium', 'small', 'cutout-sm'] as $conversion) {
+        foreach (['cutout-sm', 'medium', 'small'] as $conversion) {
             try {
                 if ($media->hasGeneratedConversion($conversion)) {
                     return $media->getFullUrl($conversion);
