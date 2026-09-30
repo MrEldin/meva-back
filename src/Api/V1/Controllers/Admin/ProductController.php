@@ -3,6 +3,7 @@
 namespace Meva\Api\V1\Controllers\Admin;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Response;
 use Lunar\FieldTypes\Text;
 use Lunar\Models\Currency;
@@ -15,6 +16,7 @@ use Meva\Api\V1\Requests\Product\ProductCreateRequest;
 use Meva\Api\V1\Requests\Product\ProductUpdateRequest;
 use Meva\Api\V1\Transformers\Commerce\ProductTransformer;
 use Meva\Entities\Product\Services\ProductCreateService;
+use Meva\Entities\Product\Services\SetService;
 
 /**
  * Catalogue management for the back-office client.
@@ -36,7 +38,24 @@ class ProductController extends Controller
                 "attribute_data->'name'->>'value' ilike ?",
                 ['%'.trim($request->string('q')).'%']
             ))
-            ->orderByDesc('id')
+            // Sets or single products.
+            ->when(in_array($request->input('type'), ['set', 'product'], true), fn ($query) => $query->whereHas(
+                'productType',
+                fn ($q) => $q->where('name', $request->input('type') === 'set' ? SetService::TYPE_SET : SetService::TYPE_PRODUCT),
+            ))
+            // One shelf.
+            ->when($request->filled('category'), fn ($query) => $query->whereHas(
+                'collections',
+                fn ($q) => $q->whereJsonContains('attribute_data->slug->value', $request->string('category')->toString()),
+            ))
+            // What the photographs are like: none at all, none lifted off its
+            // background, or at least one that is.
+            ->when($request->input('image') === 'none', fn ($query) => $query->whereDoesntHave('media', fn ($q) => $q->where('collection_name', 'images')))
+            ->when($request->input('image') === 'cutout', fn ($query) => $query->whereHas('media', fn ($q) => $q->where('collection_name', 'images')->where('custom_properties->cutout', true)))
+            ->when($request->input('image') === 'no-cutout', fn ($query) => $query
+                ->whereHas('media', fn ($q) => $q->where('collection_name', 'images'))
+                ->whereDoesntHave('media', fn ($q) => $q->where('collection_name', 'images')->where('custom_properties->cutout', true)))
+            ->tap(fn ($query) => $this->sort($query, (string) $request->input('sort', 'newest')))
             ->paginate($request->integer('per_page', 25));
 
         // Built by hand rather than through Dingo's paginator: Fractal costs
@@ -56,6 +75,27 @@ class ProductController extends Controller
                 ],
             ],
         ])->setStatusCode(Response::HTTP_OK);
+    }
+
+    /**
+     * Order the listing: newest first unless the desk asks for the name or
+     * the price, which lives two tables away on the first variant.
+     */
+    protected function sort(\Illuminate\Database\Eloquent\Builder $query, string $sort): void
+    {
+        $price = DB::table('lunar_prices')
+            ->join('lunar_product_variants', 'lunar_product_variants.id', '=', 'lunar_prices.priceable_id')
+            ->whereColumn('lunar_product_variants.product_id', 'lunar_products.id')
+            ->where('lunar_prices.priceable_type', (new \Lunar\Models\ProductVariant)->getMorphClass())
+            ->selectRaw('min(lunar_prices.price)');
+
+        match ($sort) {
+            'name' => $query->orderBy('attribute_data->name->value'),
+            'price_asc' => $query->orderBy($price, 'asc')->orderByDesc('id'),
+            'price_desc' => $query->orderBy($price, 'desc')->orderByDesc('id'),
+            'oldest' => $query->orderBy('id'),
+            default => $query->orderByDesc('id'),
+        };
     }
 
     /**

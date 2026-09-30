@@ -7,8 +7,10 @@ use PHPOpenSourceSaver\Fractal\Resource\Collection;
 use PHPOpenSourceSaver\Fractal\Resource\Item;
 
 it('lists every permission', function () {
-    Permission::truncate();
-    $permissions = Permission::factory()->count(2)->create();
+    // Not truncated first: the route itself needs users.manage, which the
+    // test owner holds through a row in this very table.
+    Permission::factory()->count(2)->create();
+    $permissions = Permission::query()->orderBy('id')->get();
 
     $response = $this->get(url('/api/permissions'), authHeaders());
 

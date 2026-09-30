@@ -117,3 +117,17 @@ it('will not take apart a product that is not a set', function () {
     $this->delete(url("/api/admin/products/{$this->cream->id}/set"), [], authHeaders())
         ->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
 });
+
+it('filters and sorts the listing for the desk', function () {
+    $set = makeSet(['price' => 100])->json('data.id');
+
+    $only = fn (array $params) => collect($this->get(url('/api/admin/products?'.http_build_query($params)), authHeaders())->json('data'))->pluck('id')->all();
+
+    expect($only(['type' => 'set']))->toBe([$set])
+        ->and($only(['type' => 'product']))->toEqualCanonicalizing([$this->cream->id, $this->lotion->id])
+        ->and($only(['image' => 'none']))->toHaveCount(3)
+        ->and($only(['image' => 'cutout']))->toBe([])
+        ->and($only(['sort' => 'price_asc']))->toBe([$set, $this->cream->id, $this->lotion->id])
+        ->and($only(['sort' => 'price_desc']))->toBe([$this->lotion->id, $this->cream->id, $set])
+        ->and($only(['sort' => 'name']))->toBe([$this->cream->id, $this->lotion->id, $set]);
+});
