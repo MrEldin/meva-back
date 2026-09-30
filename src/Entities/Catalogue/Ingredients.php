@@ -105,7 +105,7 @@ class Ingredients
         $text = html_entity_decode(strip_tags(preg_replace('~<\s*(li|p|br|h[1-6])[^>]*>~i', "\n", $source)), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         return collect(preg_split('~\n+|,|;~u', $text))
-            ->map(fn (string $piece): string => trim($piece, " \t-•·\u{A0}"))
+            ->map(fn (string $piece): string => trim($piece, " \t.-•·\u{A0}"))
             ->filter(fn (string $piece): bool => $piece !== '' && $piece !== '/')
             ->map(function (string $piece): array {
                 if (preg_match('~^(.*?)\s*\(([^()]*)\)\s*$~u', $piece, $m)) {

@@ -31,7 +31,10 @@ class SplitLabelCommand extends Command
         foreach (Product::query()->cursor() as $product) {
             $data = $product->attribute_data ?? collect();
 
-            if (Ingredients::of($product->id)->isNotEmpty() || trim((string) $data->get('usage')) !== '') {
+            // Already in rows: nothing left to move. (The directions alone
+            // do not count -- an earlier pass may have found them and
+            // missed the ingredients under a heading it did not know.)
+            if (Ingredients::of($product->id)->isNotEmpty()) {
                 continue;
             }
 
@@ -58,7 +61,9 @@ class SplitLabelCommand extends Command
             if ($ingredients !== '' && $product->productType?->name !== 'Set') {
                 Ingredients::replace($product->id, Ingredients::parse($ingredients));
             }
-            $data->put('usage', new Text($usage));
+            if ($usage !== '') {
+                $data->put('usage', new Text($usage));
+            }
             $data->put('description', new Text($html['description']));
             $data->put('short_description', new Text($text['description']));
 

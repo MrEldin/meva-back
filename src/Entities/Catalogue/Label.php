@@ -17,12 +17,12 @@ class Label
     /**
      * Where a heading or a bold lead-in names one of the two parts.
      */
-    private const HTML_MARK = '~<(h[1-6]|p|strong|b)[^>]*>\s*(?:<(?:strong|b)>\s*)?(sastav|na[čc]in upotrebe|uputstvo za upotrebu|upotreba)\b[^<]{0,40}?(?:</(?:strong|b)>\s*)?:?\s*</\1>\s*:?~iu';
+    private const HTML_MARK = '~<(h[1-6]|p|strong|b)[^>]*>\s*(?:<(?:strong|b)>\s*)?(sastav|sastojci|na[čc]in upotrebe|uputstvo za upotrebu|upotreba)\b[^<]{0,40}?(?:</(?:strong|b)>\s*)?:?\s*</\1>\s*:?~iu';
 
     /**
      * The same marks written as plain text, at the start of a line.
      */
-    private const TEXT_MARK = '~(?:^|\n)\s*(sastav|na[čc]in upotrebe|uputstvo za upotrebu)\s*:\s*~iu';
+    private const TEXT_MARK = '~(?:^|\n)\s*(sastav|sastojci|na[čc]in upotrebe|uputstvo za upotrebu)\s*:\s*~iu';
 
     /**
      * Split HTML into what stays a description and the two parts cut out of it.
@@ -63,7 +63,7 @@ class Label
             $start = $match[0][1] + strlen($match[0][0]);
             $end = $matches[$i + 1][0][1] ?? strlen($source);
             $chunk = trim(substr($source, $start, $end - $start));
-            $kind = preg_match('~sastav~iu', $match[$group][0]) ? 'ingredients' : 'usage';
+            $kind = preg_match('~sastav|sastojci~iu', $match[$group][0]) ? 'ingredients' : 'usage';
 
             if ($hasContent($chunk)) {
                 $out[$kind] .= ($out[$kind] === '' ? '' : "\n").$chunk;
