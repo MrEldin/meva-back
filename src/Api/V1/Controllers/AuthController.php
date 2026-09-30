@@ -3,6 +3,7 @@
 namespace Meva\Api\V1\Controllers;
 
 use Meva\Api\V1\Requests\User\UserLoginRequest;
+use Meva\Entities\Loyalty\Services\LoyaltyService;
 use Meva\Entities\User\Services\UserLoginService;
 
 class AuthController extends Controller
@@ -51,6 +52,7 @@ class AuthController extends Controller
             [
                 'roles' => $user->getRoleNames()->values()->all(),
                 'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),
+                'loyalty' => app(LoyaltyService::class)->brief($user),
             ]
         )]);
     }
@@ -120,6 +122,7 @@ class AuthController extends Controller
             'user' => $user ? array_merge($user->only(['id', 'first_name', 'last_name', 'email']), [
                 'roles' => $user->getRoleNames()->values()->all(),
                 'permissions' => $user->getAllPermissions()->pluck('name')->values()->all(),
+                'loyalty' => app(LoyaltyService::class)->brief($user),
             ]) : null,
         ]);
     }

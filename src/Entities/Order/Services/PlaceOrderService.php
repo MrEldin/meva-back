@@ -11,6 +11,7 @@ use Lunar\Models\Country;
 use Lunar\Models\Currency;
 use Lunar\Models\Order;
 use Lunar\Models\ProductVariant;
+use Meva\Entities\Loyalty\Services\LoyaltyService;
 use Meva\Entities\Order\Modifiers\FreeShippingModifier;
 use RuntimeException;
 
@@ -20,15 +21,31 @@ use RuntimeException;
  * The shop is cash on delivery, so there is no payment step: the order is
  * created, and the courier collects. Everything runs in one transaction, since
  * a cart that half-becomes an order is worse than no order at all.
+ *
+ * A signed-in member may pay part of it with a Meva Klub coupon; the coupon is
+ * checked, applied and spent inside the same transaction, so an order that
+ * fails never uses one up.
  */
 class PlaceOrderService
 {
+    public function __construct(protected LoyaltyService $loyalty)
+    {
+    }
+
     /**
-     * @param  array{lines: array<int, array{sku: string, quantity: int}>, customer: array<string, mixed>}  $data
+     * @param  array{lines: array<int, array{sku: string, quantity: int}>, customer: array<string, mixed>, coupon?: string|null}  $data
+     *
+     * @throws \Illuminate\Validation\ValidationException when the coupon cannot be used
      */
     public function handle(array $data): Order
     {
         return DB::transaction(function () use ($data): Order {
+            // Checked first and held locked, so a bad code fails before any
+            // cart is built and a good one cannot pay for two orders at once.
+            $coupon = filled($data['coupon'] ?? null)
+                ? $this->loyalty->usableCoupon(auth()->user(), $data['coupon'], lock: true)
+                : null;
+
             $cart = $this->buildCart($data['lines']);
 
             $this->addAddress($cart, $data['customer']);
@@ -52,6 +69,10 @@ class PlaceOrderService
                 // e-mail.
                 'user_id' => auth()->id(),
             ]);
+
+            if ($coupon !== null) {
+                $this->loyalty->applyCoupon($order->refresh(), $coupon);
+            }
 
             return $order->refresh();
         });

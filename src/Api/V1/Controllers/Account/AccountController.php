@@ -8,6 +8,7 @@ use Lunar\Models\Order;
 use Meva\Api\V1\Controllers\Controller;
 use Meva\Api\V1\Requests\User\RegisterRequest;
 use Meva\Api\V1\Transformers\Commerce\OrderTransformer;
+use Meva\Entities\Loyalty\Services\LoyaltyService;
 use Meva\Entities\User\Models\User;
 
 /**
@@ -18,7 +19,7 @@ class AccountController extends Controller
     /**
      * Open an account. Customers get the "customer" role and nothing more.
      */
-    public function register(RegisterRequest $request)
+    public function register(RegisterRequest $request, LoyaltyService $loyalty)
     {
         $user = User::query()->create([
             'first_name' => $request->input('first_name'),
@@ -35,6 +36,9 @@ class AccountController extends Controller
             ->where('customer_reference', $user->email)
             ->update(['user_id' => $user->id]);
 
+        // Joining the shop is joining Meva Klub, with a welcome gift.
+        $loyalty->welcome($user);
+
         $token = auth()->login($user);
 
         return response()->json([
@@ -44,6 +48,7 @@ class AccountController extends Controller
             'user' => array_merge($user->only(['id', 'first_name', 'last_name', 'email']), [
                 'roles' => $user->getRoleNames()->values()->all(),
                 'permissions' => [],
+                'loyalty' => $loyalty->brief($user),
             ]),
         ], Response::HTTP_CREATED);
     }

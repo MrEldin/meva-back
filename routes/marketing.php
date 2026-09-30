@@ -1,5 +1,6 @@
 <?php
 
+use Meva\Api\V1\Controllers\Admin\LoyaltyController;
 use Meva\Api\V1\Controllers\Admin\MarketingController;
 
 $api = app('Dingo\Api\Routing\Router');
@@ -27,5 +28,14 @@ $api->version('v1', function ($api) {
         $api->get('campaigns', MarketingController::class.'@campaigns')->name('campaigns');
         $api->get('insights', MarketingController::class.'@insights')->name('insights');
         $api->get('lists/{list}', MarketingController::class.'@exportList')->where(['list' => 'due|winback|loyal'])->name('lists');
+    });
+
+    // Meva Klub's figures sit with the rest of the marketing desk.
+    $api->group([
+        'middleware' => ['api', 'auth', 'permission:marketing.manage'],
+        'prefix' => 'admin',
+        'as' => 'admin',
+    ], function ($api) {
+        $api->get('loyalty', LoyaltyController::class.'@overview')->name('loyalty');
     });
 });

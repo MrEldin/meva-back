@@ -26,6 +26,10 @@ class OrderCreateRequest extends ApiFormRequest
             'customer.city' => ['required', 'string', 'max:120'],
             'customer.postcode' => ['nullable', 'string', 'max:20'],
             'customer.note' => ['nullable', 'string', 'max:1000'],
+
+            // A Meva Klub coupon. Whether it may be used is decided when the
+            // order is placed, where it is also spent.
+            'coupon' => ['nullable', 'string', 'max:40'],
         ];
     }
 

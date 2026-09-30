@@ -15,7 +15,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  */
 class MarkCutoutsCommand extends Command
 {
-    protected $signature = 'meva:cutouts {--dry : Only say what would change}';
+    protected $signature = 'meva:cutouts:mark {--dry : Only say what would change}';
 
     protected $description = 'Mark uploaded product images with a transparent background as cutouts';
 
