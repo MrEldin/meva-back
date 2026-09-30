@@ -7,9 +7,11 @@ use Meva\Entities\Role\Models\Role;
 use PHPOpenSourceSaver\Fractal\Resource\Collection;
 use PHPOpenSourceSaver\Fractal\Resource\Item;
 
+// Not truncated first: the routes need users.manage, which the test owner
+// holds through the super-admin role in this very table.
 it('lists every role', function () {
-    Role::truncate();
-    $roles = Role::factory()->count(2)->create();
+    Role::factory()->count(2)->create();
+    $roles = Role::query()->orderBy('id')->get();
 
     $response = $this->get(url('/api/roles'), authHeaders());
 
@@ -17,11 +19,9 @@ it('lists every role', function () {
 });
 
 it('lists every role together with its permissions', function () {
-    Role::truncate();
-    $roles = Role::factory()->count(2)->create();
     $permission = Permission::factory()->create();
-
-    $roles->each(fn (Role $role) => $role->permissions()->attach($permission));
+    Role::factory()->count(2)->create()->each(fn (Role $role) => $role->permissions()->attach($permission));
+    $roles = Role::query()->orderBy('id')->get();
 
     $response = $this->get(url('/api/roles'), authHeaders());
 
