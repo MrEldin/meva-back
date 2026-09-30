@@ -79,3 +79,19 @@ it('reads an old ingredient list into rows', function () {
         ->and(Ingredients::parse('<p>Cocamidopropyl Betaine, Aqua (Voda), Glycerol (Glicerin)</p>'))
         ->toBe([['inci' => 'Cocamidopropyl Betaine', 'name' => ''], ['inci' => 'Aqua', 'name' => 'Voda'], ['inci' => 'Glycerol', 'name' => 'Glicerin']]);
 });
+
+it('finds the ingredients under "Sastojci" too, even when the directions were already moved', function () {
+    $product = app(ProductCreateService::class)->handle([
+        'name' => 'Čaj', 'price' => 800, 'product_type_id' => $this->type->id,
+        'description' => 'Biljna mešavina. <strong>Sastojci:</strong> <ul><li>Cynara Scolymus (Artičoka),</li><li>Melissa Officinalis (Matičnjak).</li></ul>',
+        'usage' => '<p>Piti dva puta dnevno.</p>',
+    ]);
+
+    $this->artisan('meva:label:split')->assertSuccessful();
+
+    $data = Product::query()->findOrFail($product->id)->attribute_data;
+
+    expect(Ingredients::of($product->id)->all())->toBe([['inci' => 'Cynara Scolymus', 'name' => 'Artičoka'], ['inci' => 'Melissa Officinalis', 'name' => 'Matičnjak']])
+        ->and((string) $data->get('description'))->toBe('Biljna mešavina.')
+        ->and((string) $data->get('usage'))->toBe('<p>Piti dva puta dnevno.</p>');
+});
