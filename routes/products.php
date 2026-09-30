@@ -1,6 +1,7 @@
 <?php
 
 use Meva\Api\V1\Controllers\Admin\ProductController;
+use Meva\Api\V1\Controllers\Admin\SetController;
 
 $api = app('Dingo\Api\Routing\Router');
 
@@ -23,6 +24,7 @@ $api->version('v1', function ($api) {
     ], function ($api) {
         $api->get('', ProductController::class.'@index')->name('index');
         $api->get('{id}', ProductController::class.'@show')->name('show');
+        $api->get('{id}/set', SetController::class.'@show')->name('set.show');
     });
 
     $api->group([
@@ -31,6 +33,9 @@ $api->version('v1', function ($api) {
         'as' => 'admin.products',
     ], function ($api) {
         $api->post('', ProductController::class.'@create')->name('create');
+        $api->post('sets', SetController::class.'@create')->name('sets.create');
+        $api->put('{id}/set', SetController::class.'@update')->name('set.update');
+        $api->delete('{id}/set', SetController::class.'@destroy')->name('set.destroy');
         $api->get('{id}/images', ProductController::class.'@images')->name('images');
         $api->post('{id}/images', ProductController::class.'@uploadImage')->name('images.store');
         $api->delete('{id}/images/{media}', ProductController::class.'@deleteImage')->name('images.destroy');

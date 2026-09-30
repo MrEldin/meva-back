@@ -26,6 +26,7 @@ class ProductTransformer extends TransformerAbstract
             'id' => (int) $product->id,
             'status' => $product->status,
             'product_type_id' => (int) $product->product_type_id,
+            'is_set' => $product->productType?->name === 'Set',
             'brand' => $product->brand?->name,
             'name' => $this->attribute($product, 'name'),
             'slug' => $this->attribute($product, 'slug'),

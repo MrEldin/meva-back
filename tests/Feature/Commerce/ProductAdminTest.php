@@ -74,7 +74,7 @@ it('lists products', function () {
     $response = $this->get(url('/api/admin/products'), authHeaders());
 
     $response->assertStatus(Response::HTTP_OK);
-    expect($response->getOriginalContent())->toHaveCount(3);
+    expect($response->getOriginalContent()['data'])->toHaveCount(3);
 });
 
 it('shows a single product with its name flattened', function () {

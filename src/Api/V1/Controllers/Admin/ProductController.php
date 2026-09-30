@@ -29,7 +29,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $products = Product::query()
-            ->with(['variants.prices.currency', 'media'])
+            ->with(['variants.prices.currency', 'media', 'productType'])
             ->when($request->filled('status'), fn ($query) => $query->status($request->string('status')))
             ->when($request->filled('q'), fn ($query) => $query->whereRaw(
                 "attribute_data->'name'->>'value' ilike ?",
@@ -62,7 +62,7 @@ class ProductController extends Controller
      */
     public function show(int $id)
     {
-        $product = Product::query()->with(['variants.prices.currency', 'media'])->findOrFail($id);
+        $product = Product::query()->with(['variants.prices.currency', 'media', 'productType'])->findOrFail($id);
 
         return $this->response
             ->item($product, new ProductTransformer)
